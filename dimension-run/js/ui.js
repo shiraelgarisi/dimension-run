@@ -1,0 +1,176 @@
+/* Menus and HUD: all DOM work lives here. The game calls these functions;
+   button clicks are forwarded to the handlers the game passes to init(). */
+(function () {
+  'use strict';
+  const DR = window.DR;
+  const $ = id => document.getElementById(id);
+  const SCREENS = ['menu', 'levels', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const RING = 2 * Math.PI * 28;
+
+  let hintText = '', bannerTimer = null, lastHud = {};
+
+  const UI = {
+    init(h) {
+      const on = (id, fn) => $(id).addEventListener('click', () => { DR.Sound.click(); fn(); });
+      on('startBtn', h.start);
+      on('levelsBtn', h.levels);
+      on('exitBtn', h.exit);
+      on('levelsBack', h.menu);
+      on('resetBtn', () => { if (window.confirm('Reset all progress and best scores?')) h.resetProgress(); });
+      on('resumeBtn', h.resume);
+      on('restartBtn', h.retry);
+      on('pauseMenuBtn', h.menu);
+      on('retryBtn', h.retry);
+      on('overMenuBtn', h.menu);
+      on('nextBtn', h.next);
+      on('cRetryBtn', h.retry);
+      on('cMenuBtn', h.menu);
+      on('vMenuBtn', h.menu);
+      on('vLevelsBtn', h.levels);
+      on('exitBack', h.menu);
+      $('muteBtn').addEventListener('click', h.mute);
+      $('pauseBtn').addEventListener('click', h.pause);
+      this.handlers = h;
+    },
+
+    /** Show one overlay screen (or none with null) and focus its first button. */
+    show(name) {
+      for (const s of SCREENS) $(s).classList.toggle('hidden', s !== name);
+      this.current = name;
+      if (name) {
+        const b = $(name).querySelector('button:not([disabled])');
+        if (b) setTimeout(() => b.focus({ preventScroll: true }), 30);
+      }
+    },
+    hud(visible) { $('hud').classList.toggle('hidden', !visible); if (!visible) { this.hint(''); this.banner(''); } },
+
+    /** Arrow keys move between the visible buttons of the current screen. */
+    navigate(dir) {
+      if (!this.current) return;
+      const btns = [...$(this.current).querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent);
+      if (!btns.length) return;
+      const i = btns.indexOf(document.activeElement);
+      btns[(i + dir + btns.length) % btns.length].focus();
+    },
+
+    renderMenu(save, next) {
+      const cfg = DR.LEVELS[next - 1];
+      $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
+      $('menuBest').textContent = save.bestTotal();
+    },
+
+    renderLevels(save, pick) {
+      const grid = $('levelGrid');
+      grid.innerHTML = '';
+      for (const cfg of DR.LEVELS) {
+        const unlocked = save.isUnlocked(cfg.id);
+        const b = document.createElement('button');
+        b.className = 'level-card' + (unlocked ? '' : ' locked');
+        b.innerHTML = `
+          ${save.isCompleted(cfg.id) ? '<span class="done" title="Completed">✔</span>' : ''}
+          <span class="num">${cfg.id}</span>
+          <span class="name">${cfg.name}</span>
+          <span class="diff">${cfg.difficulty}</span>
+          ${unlocked ? `<span class="lbest">Best: ${save.best(cfg.id)}</span>` : '<span class="lock">🔒</span><span class="lbest">Finish level ' + (cfg.id - 1) + '</span>'}`;
+        b.setAttribute('aria-label', `Level ${cfg.id} ${cfg.name}${unlocked ? '' : ' (locked)'}`);
+        if (unlocked) b.addEventListener('click', () => { DR.Sound.click(); pick(cfg.id); });
+        else b.addEventListener('click', () => { DR.Sound.denied(); b.animate([{ transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'none' }], 200); });
+        grid.appendChild(b);
+      }
+    },
+
+    startLevel(cfg, best) {
+      $('levelName').textContent = `Level ${cfg.id} · ${cfg.name}`;
+      $('hudBest').textContent = best;
+      $('shards').classList.add('hidden');
+      lastHud = {};
+      $('dimState').innerHTML = '<kbd>SPACE</kbd> switch';
+    },
+
+    updateHud(s) {
+      const set = (k, id, v) => { if (lastHud[k] !== v) { lastHud[k] = v; $(id).textContent = v; } };
+      set('score', 'score', s.score);
+      set('coins', 'coins', s.coins);
+      if (s.shards) { set('shards', 'shards', '✦ ' + s.shards); $('shards').classList.remove('hidden'); }
+      const pct = Math.floor(s.progress * 100);
+      if (lastHud.pct !== pct) { lastHud.pct = pct; $('progressFill').style.width = pct + '%'; $('progressPct').textContent = pct + '%'; }
+      if (lastHud.world !== s.world) {
+        lastHud.world = s.world;
+        const dark = s.world === DR.CONST.DARK;
+        $('dimIcon').textContent = dark ? '☾' : '☀';
+        $('dimName').textContent = dark ? 'DARK WORLD' : 'LIGHT WORLD';
+        $('dimension').classList.toggle('dark', dark);
+        $('dimension').classList.toggle('light', !dark);
+      }
+      const r = Math.round(s.readiness * 100) / 100;
+      if (lastHud.ready !== r) {
+        lastHud.ready = r;
+        $('dimRing').style.strokeDashoffset = String(RING * (1 - r));
+        $('dimension').classList.toggle('charging', r < 1);
+        if (s.cooldownOn) $('dimState').innerHTML = r < 1 ? 'recharging…' : '<kbd>SPACE</kbd> ready';
+      }
+    },
+    denied() {
+      const d = $('dimension');
+      d.classList.remove('denied'); void d.offsetWidth; d.classList.add('denied');
+    },
+
+    hint(text) {
+      if (text === hintText) return;
+      hintText = text;
+      $('hint').textContent = text;
+      $('hint').classList.toggle('hidden', !text);
+    },
+    banner(html, cls = '', ms = 1600) {
+      const b = $('banner');
+      clearTimeout(bannerTimer);
+      if (!html) { b.classList.add('hidden'); return; }
+      b.innerHTML = html;
+      b.className = cls;
+      void b.offsetWidth;
+      if (ms) bannerTimer = setTimeout(() => b.classList.add('hidden'), ms);
+    },
+    flash(kind) {   // 'l' light, 'd' dark, 'w' white, 'r' red
+      const f = $('flash');
+      f.className = kind + ' on';
+      requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
+    },
+    vignette(on) { $('vignette').classList.toggle('on', !!on); },
+    glitch() { document.body.classList.add('glitch'); setTimeout(() => document.body.classList.remove('glitch'), 140); },
+    setMuted(m) { $('muteBtn').classList.toggle('off', m); },
+
+    gameOver(d) {
+      $('deathMsg').textContent = d.message;
+      $('overPct').textContent = Math.floor(d.progress * 100) + '%';
+      $('overLevel').textContent = `Level ${d.cfg.id} · ${d.cfg.name}`;
+      $('overScore').textContent = d.score;
+      $('overCoins').textContent = d.coins;
+      $('overBest').textContent = d.best;
+      $('overNewBest').classList.toggle('hidden', !d.isBest);
+      this.show('over');
+    },
+    complete(d) {
+      $('completeName').textContent = `Level ${d.cfg.id} · ${d.cfg.name}`;
+      $('cDist').textContent = Math.floor(d.distance) + ' m';
+      $('cCoins').textContent = d.coins;
+      $('cShards').textContent = d.shards + ' / ' + d.totalShards;
+      $('cBonus').textContent = '+' + d.bonus;
+      $('cScore').textContent = d.score;
+      $('cNewBest').classList.toggle('hidden', !d.isBest);
+      const nextCfg = DR.LEVELS[d.cfg.id];
+      $('cUnlock').classList.toggle('hidden', !d.unlockedNew);
+      if (nextCfg) $('cUnlock').textContent = `🔓 Level ${nextCfg.id} unlocked: ${nextCfg.name}`;
+      $('nextBtn').classList.toggle('hidden', !nextCfg);
+      this.show('complete');
+    },
+    victory(d) {
+      $('vScore').textContent = d.score;
+      $('vCoins').textContent = d.coins;
+      $('vTotal').textContent = d.total;
+      $('vNewBest').classList.toggle('hidden', !d.isBest);
+      this.show('victory');
+    },
+  };
+
+  DR.UI = UI;
+})();

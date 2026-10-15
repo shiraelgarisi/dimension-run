@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dimension Run</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="flash"></div>
+  <div id="vignette"></div>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div id="score">0</div>
+      <div class="coins"><span class="coin-icon"></span><span id="coins">0</span><span id="shards" class="shards hidden"></span></div>
+    </div>
+    <div class="hud-center">
+      <div id="levelName">Level 1</div>
+      <div class="progress"><div id="progressFill"></div><div class="flag">⚑</div></div>
+      <div id="progressPct">0%</div>
+    </div>
+    <div class="hud-right">
+      <div class="best">BEST <b id="hudBest">0</b></div>
+      <div class="hud-buttons">
+        <button id="muteBtn" title="Sound (M)">♪</button>
+        <button id="pauseBtn" title="Pause (Esc)">❚❚</button>
+      </div>
+    </div>
+    <div id="dimension">
+      <div class="dim-orb">
+        <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28"/><circle id="dimRing" class="ring" cx="32" cy="32" r="28"/></svg>
+        <span id="dimIcon">☀</span>
+      </div>
+      <div class="dim-text">
+        <div id="dimName">LIGHT WORLD</div>
+        <div id="dimState"><kbd>SPACE</kbd> switch</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint" class="hidden"></div>
+  <div id="banner" class="hidden"></div>
+
+  <!-- ===== Main menu ===== -->
+  <div id="menu" class="screen">
+    <div class="panel title-panel">
+      <h1 class="logo"><span class="l">DIMENSION</span><span class="d">RUN</span></h1>
+      <p class="tag">Two worlds. One path. Switch to survive.</p>
+      <div class="menu-buttons">
+        <button id="startBtn" class="big">START GAME</button>
+        <div id="startInfo" class="sub">Level 1 · The Beginning</div>
+        <button id="levelsBtn">LEVEL SELECTION</button>
+        <button id="exitBtn" class="ghost">EXIT</button>
+      </div>
+      <div class="controls">
+        <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> move</div>
+        <div><kbd>↑</kbd> / <kbd>W</kbd> jump</div>
+        <div><kbd>↓</kbd> / <kbd>S</kbd> slide</div>
+        <div><kbd>SPACE</kbd> switch world</div>
+        <div><kbd>ESC</kbd> pause</div>
+        <div><kbd>M</kbd> mute</div>
+      </div>
+      <p class="best-line">Best total: <b id="menuBest">0</b></p>
+    </div>
+  </div>
+
+  <!-- ===== Level selection ===== -->
+  <div id="levels" class="screen hidden">
+    <div class="panel wide">
+      <h2>SELECT LEVEL</h2>
+      <div id="levelGrid" class="level-grid"></div>
+      <div class="row-buttons">
+        <button id="levelsBack">BACK</button>
+        <button id="resetBtn" class="ghost small">Reset progress</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Pause ===== -->
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2>PAUSED</h2>
+      <button id="resumeBtn" class="big">RESUME</button>
+      <button id="restartBtn">RESTART LEVEL</button>
+      <button id="pauseMenuBtn" class="ghost">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- ===== Game over ===== -->
+  <div id="over" class="screen hidden">
+    <div class="panel">
+      <h2 class="danger">GAME OVER</h2>
+      <p id="deathMsg" class="msg"></p>
+      <div class="reached">Reached <b id="overPct">0%</b> of <span id="overLevel"></span></div>
+      <div class="stats">
+        <div><small>SCORE</small><b id="overScore">0</b></div>
+        <div><small>COINS</small><b id="overCoins">0</b></div>
+        <div><small>BEST</small><b id="overBest">0</b></div>
+      </div>
+      <div id="overNewBest" class="new-best hidden">★ NEW BEST ★</div>
+      <button id="retryBtn" class="big">RETRY</button>
+      <button id="overMenuBtn" class="ghost">MAIN MENU</button>
+      <p class="small">Enter to retry</p>
+    </div>
+  </div>
+
+  <!-- ===== Level complete ===== -->
+  <div id="complete" class="screen hidden">
+    <div class="panel">
+      <h2 class="good">LEVEL COMPLETE!</h2>
+      <p id="completeName" class="msg"></p>
+      <div class="stats">
+        <div><small>DISTANCE</small><b id="cDist">0</b></div>
+        <div><small>COINS</small><b id="cCoins">0</b></div>
+        <div><small>SHARDS</small><b id="cShards">0</b></div>
+        <div><small>BONUS</small><b id="cBonus">0</b></div>
+      </div>
+      <div class="total">SCORE <b id="cScore">0</b></div>
+      <div id="cNewBest" class="new-best hidden">★ NEW BEST ★</div>
+      <div id="cUnlock" class="unlock hidden"></div>
+      <button id="nextBtn" class="big">NEXT LEVEL</button>
+      <div class="row-buttons">
+        <button id="cRetryBtn">RETRY</button>
+        <button id="cMenuBtn" class="ghost">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Final victory ===== -->
+  <div id="victory" class="screen hidden">
+    <div class="panel victory-panel">
+      <div class="stars">✦ ✧ ✦</div>
+      <h1 class="logo small"><span class="l">YOU</span><span class="d">ESCAPED</span></h1>
+      <p class="msg">You mastered both dimensions and escaped the collapse.<br>Dimension Run complete!</p>
+      <div class="stats">
+        <div><small>FINAL LEVEL</small><b id="vScore">0</b></div>
+        <div><small>COINS</small><b id="vCoins">0</b></div>
+        <div><small>BEST TOTAL</small><b id="vTotal">0</b></div>
+      </div>
+      <div id="vNewBest" class="new-best hidden">★ NEW BEST ★</div>
+      <button id="vMenuBtn" class="big">MAIN MENU</button>
+      <button id="vLevelsBtn" class="ghost">LEVEL SELECTION</button>
+    </div>
+  </div>
+
+  <!-- ===== Exit ===== -->
+  <div id="exit" class="screen hidden">
+    <div class="panel">
+      <h2>THANKS FOR PLAYING</h2>
+      <p class="msg">Your progress is saved. You can close this tab or window now.</p>
+      <button id="exitBack">BACK TO MENU</button>
+    </div>
+  </div>
+
+  <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/collision.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/dimension.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/autopilot.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
