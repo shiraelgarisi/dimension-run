@@ -42,8 +42,9 @@
           if (!isNaN(stopAt) && g.mode === 'play' && g.sim.progress >= stopAt) {
             if (p.has('dark') && g.sim.dim.world !== 1) g.sim.dim.forceFlip();
             if (p.has('light') && g.sim.dim.world !== 0) g.sim.dim.forceFlip();
-            for (let j = 0; j < 20; j++) g.world.update(1 / 60, { sim: g.sim, mode: 'play', modeT: 0, instability: 0, danger: 0 }), g.sim.dim.update(1 / 60);
-            g.world.render();
+            // freeze the run but keep rendering, so a screenshot shows the scene
+            const frozen = () => { g.sim.dim.update(1 / 60); g.frame(0); requestAnimationFrame(frozen); };
+            frozen();
             report.levels.push({ level: n, result: 'stopped', progress: g.sim.progress });
             return finish();
           }
@@ -65,6 +66,11 @@
       setTimeout(chunk, 0);
     };
     chunk();
+  }
+  if (p.get('screen') === 'levels') {
+    // just open the level selection screen (for a screenshot)
+    setTimeout(() => { document.getElementById('levelsBtn').click(); const f = () => { g.frame(1 / 60); requestAnimationFrame(f); }; f(); finish(); }, 50);
+    return;
   }
   setTimeout(() => runLevel(0), 50);
 })();

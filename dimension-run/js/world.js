@@ -558,6 +558,14 @@
     }
 
     _floorStrip(w, lane, a, b, topMat, slabMat, parent) {
+      // long strips are split into short pieces: huge triangles cause depth-precision flicker
+      const MAX = 50;
+      if (b - a > MAX) {
+        const n = Math.ceil((b - a) / MAX);
+        let last = null;
+        for (let i = 0; i < n; i++) last = this._floorStrip(w, lane, a + (b - a) * i / n, a + (b - a) * (i + 1) / n, topMat, slabMat, parent);
+        return last;
+      }
       const len = b - a;
       const g = new THREE.Group();
       const extra = lane === 0 ? 0 : 0.4;      // outer lanes reach the curbs
@@ -567,7 +575,7 @@
       for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (width / LW), uv.getY(i) * (len / LW));
       top.userData.ownGeo = true;
       const slab = new THREE.Mesh(new THREE.BoxGeometry(width, 1.2, len), slabMat);
-      slab.position.y = -0.61;
+      slab.position.y = -0.7;     // top face 10 cm below the walking surface
       slab.userData.ownGeo = true;
       g.add(top, slab);
       g.position.set(lane * LW + Math.sign(lane) * extra / 2, 0, -(a + b) / 2);
@@ -916,7 +924,6 @@
         const a = Math.PI + Math.sin(t * 0.22) * 0.55;
         cam.position.set(x + Math.sin(a) * 6, 2.3 + Math.sin(t * 0.4) * 0.3, z + Math.cos(a) * 6);
         cam.lookAt(x, 1.4, z);
-        cam.rotation.z = 0;
         return;
       }
       if (view.mode === 'finish' || view.mode === 'victory') {
@@ -945,7 +952,7 @@
       if (this.glitch > 0) this.glitch = Math.max(0, this.glitch - dt);
       const roll = inst * (Math.sin(t * 1.3) * 0.035 + Math.sin(t * 3.7) * 0.012) + (this.glitch > 0 ? (rnd() - 0.5) * 0.06 : 0);
       this.camRoll = U.lerp(this.camRoll, roll, U.damp(6, dt));
-      cam.rotation.z += this.camRoll;
+      cam.rotateZ(this.camRoll);
       const fov = this.baseFov + Math.max(0, sim.speed - 11) * 0.45 + inst * Math.sin(t * 0.9) * 1.5;
       if (Math.abs(cam.fov - fov) > 0.02) { cam.fov = U.lerp(cam.fov, fov, U.damp(3, dt)); cam.updateProjectionMatrix(); }
     }
