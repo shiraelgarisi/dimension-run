@@ -666,150 +666,50 @@
     // ---------------- the runner ----------------
     _makeRunner() {
       const lam = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
-      this.shirtMat = lam(0xf2f2f2); this.pantsMat = lam(0x34405e);
+      const skin = lam(0xe8b98f), shirt = lam(0xf2f2f2), pants = lam(0x34405e), boots = lam(0x2a1c14), hair = lam(0x3a2414);
+      this.shirtMat = shirt; this.pantsMat = pants;
       this.scarfBase = new THREE.Color(0xffb020);
       this.scarfMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xffb020, emissiveIntensity: 0.5 });
       this.amuletMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffe066, emissiveIntensity: 1.5 });
-      const root = new THREE.Group();
+      const box = (w, h, d, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); return o; };
+      const root = new THREE.Group(), body = new THREE.Group();
+      root.add(body);
+      body.add(box(0.6, 0.7, 0.34, shirt, 0, 1.33, 0));
+      body.add(box(0.64, 0.16, 0.38, this.scarfMat, 0, 1.64, 0));     // scarf
+      const tail = box(0.16, 0.5, 0.06, this.scarfMat, 0.14, 1.45, 0.22);
+      tail.rotation.x = 0.5;
+      body.add(tail);
+      const amulet = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), this.amuletMat);
+      amulet.position.set(0, 1.42, -0.19);
+      body.add(amulet);
+      body.add(box(0.62, 0.12, 0.36, boots, 0, 0.98, 0));
+      const head = new THREE.Group();
+      head.position.y = 1.88;
+      head.add(box(0.38, 0.4, 0.38, skin));
+      head.add(box(0.4, 0.14, 0.4, hair, 0, 0.18, 0.02));
+      head.add(box(0.4, 0.3, 0.1, hair, 0, 0.05, 0.17));
+      body.add(head);
+      const hatSlot = new THREE.Group(); hatSlot.position.y = 0.25; head.add(hatSlot);
+      const backSlot = new THREE.Group(); backSlot.position.set(0, 1.33, 0.2); body.add(backSlot);
+      const limb = (x, y, w, h, m, foot) => {
+        const p = new THREE.Group();
+        p.position.set(x, y, 0);
+        p.add(box(w, h, w + 0.02, m, 0, -h / 2, 0));
+        if (foot) p.add(box(w + 0.04, 0.15, w + 0.16, foot, 0, -h + 0.04, -0.06));
+        body.add(p);
+        return p;
+      };
+      const armL = limb(-0.41, 1.62, 0.15, 0.6, skin), armR = limb(0.41, 1.62, 0.15, 0.6, skin);
+      const legL = limb(-0.15, 0.95, 0.21, 0.9, pants, boots), legR = limb(0.15, 0.95, 0.21, 0.9, pants, boots);
       const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: this.tex.blob, transparent: true, depthWrite: false }));
       shadow.position.y = 0.03;
       this.scene.add(root, shadow);
-      const R = { root, shadow, phase: 0, scale: 1 };
-      this._buildBody(R, 'explorer');
-      return R;
-    }
-
-    /** (Re)builds the runner's body. 'explorer' is the blocky original; the others are round toy figures. */
-    _buildBody(R, style) {
-      if (R.body) R.root.remove(R.body);
-      if (this.bodyRes) this.bodyRes.dispose();
-      const X = (this.bodyRes = DR.dress.Res());
-      R.style = style;
-      const body = new THREE.Group();
-      R.root.add(body);
-      R.body = body;
-      if (style === 'explorer') {
-        const skin = X.lam(0xe8b98f), boots = X.lam(0x2a1c14), hair = X.lam(0x3a2414);
-        const box = (w, h, d, m, x = 0, y = 0, z = 0) => X.mesh(new THREE.BoxGeometry(w, h, d), m, x, y, z);
-        body.add(box(0.6, 0.7, 0.34, this.shirtMat, 0, 1.33, 0));
-        body.add(box(0.64, 0.16, 0.38, this.scarfMat, 0, 1.64, 0));     // scarf
-        const tail = box(0.16, 0.5, 0.06, this.scarfMat, 0.14, 1.45, 0.22);
-        tail.rotation.x = 0.5;
-        body.add(tail);
-        body.add(X.mesh(new THREE.OctahedronGeometry(0.09), this.amuletMat, 0, 1.42, -0.19));
-        body.add(box(0.62, 0.12, 0.36, boots, 0, 0.98, 0));
-        const head = new THREE.Group();
-        head.position.y = 1.88;
-        head.add(box(0.38, 0.4, 0.38, skin));
-        head.add(box(0.4, 0.14, 0.4, hair, 0, 0.18, 0.02));
-        head.add(box(0.4, 0.3, 0.1, hair, 0, 0.05, 0.17));
-        body.add(head);
-        R.head = head;
-        R.hatSlot = new THREE.Group(); R.hatSlot.position.y = 0.25; head.add(R.hatSlot);
-        R.backSlot = new THREE.Group(); R.backSlot.position.set(0, 1.33, 0.2); body.add(R.backSlot);
-        const limb = (x, y, w, h, m, foot) => {
-          const p = new THREE.Group();
-          p.position.set(x, y, 0);
-          p.add(box(w, h, w + 0.02, m, 0, -h / 2, 0));
-          if (foot) p.add(box(w + 0.04, 0.15, w + 0.16, foot, 0, -h + 0.04, -0.06));
-          body.add(p);
-          return p;
-        };
-        R.armL = limb(-0.41, 1.62, 0.15, 0.6, skin); R.armR = limb(0.41, 1.62, 0.15, 0.6, skin);
-        R.legL = limb(-0.15, 0.95, 0.21, 0.9, this.pantsMat, boots); R.legR = limb(0.15, 0.95, 0.21, 0.9, this.pantsMat, boots);
-        return;
-      }
-
-      // ----- round toy figure: big head, peg body, stubby arms, painted face -----
-      const C = {
-        mia: { skin: 0xf6cfae, hair: 0x1d4e5e, shoes: 0xff3d9a },
-        leo: { skin: 0x7a4a2c, hair: 0x15100c, shoes: 0xff8a2a },
-      }[style];
-      const smooth = (c, o = {}) => X(new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.45, metalness: 0.05 }, o)));
-      const skin = smooth(C.skin), hair = smooth(C.hair, { roughness: 0.6 }), shoe = smooth(C.shoes);
-      // the toy's plastic: shirt and shorts reuse the outfit materials
-      const shirt = this.shirtMat, pants = this.pantsMat;
-      // lower body: rounded "bell" for shorts
-      body.add(X.mesh(new THREE.CylinderGeometry(0.33, 0.37, 0.42, 24), pants, 0, 0.5, 0));
-      // torso, with rounded shoulders
-      body.add(X.mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.5, 24), shirt, 0, 0.95, 0));
-      const shoulders = X.mesh(new THREE.SphereGeometry(0.3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, 1.19, 0);
-      shoulders.scale.y = 0.45; body.add(shoulders);
-      // chest panel and collar in the glowing scarf colour (it changes with the world)
-      const panel = X.mesh(new THREE.CylinderGeometry(0.305, 0.335, 0.34, 24, 1, true, Math.PI * 0.72, Math.PI * 0.56), this.scarfMat, 0, 0.98, 0);
-      body.add(panel);
-      body.add(X.mesh(new THREE.TorusGeometry(0.17, 0.045, 8, 20).rotateX(Math.PI / 2), this.scarfMat, 0, 1.3, 0));
-      body.add(X.mesh(new THREE.OctahedronGeometry(0.07), this.amuletMat, 0, 1.12, -0.33));
-      // neck + head
-      body.add(X.mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.12, 12), skin, 0, 1.34, 0));
-      const head = new THREE.Group();
-      head.position.y = 1.76;
-      head.add(X.mesh(new THREE.SphereGeometry(0.43, 28, 20), skin));
-      // face (front is -z)
-      const black = smooth(0x15100c, { roughness: 0.2 }), white = X.glow(0xffffff);
-      for (const sx of [-1, 1]) {
-        const eye = X.mesh(new THREE.SphereGeometry(0.055, 12, 10), black, sx * 0.14, 0.04, -0.395);
-        eye.scale.set(0.85, 1.25, 0.6); head.add(eye);
-        head.add(X.mesh(new THREE.SphereGeometry(0.016, 6, 6), white, sx * 0.14 + 0.018, 0.075, -0.43));
-        const brow = X.mesh(new THREE.BoxGeometry(0.1, 0.022, 0.02), black, sx * 0.14, 0.15, -0.395);
-        brow.rotation.z = -sx * 0.12; brow.rotation.x = -0.35; head.add(brow);
-        const cheek = X.mesh(new THREE.CircleGeometry(0.055, 14), X.glow(0xff8a9a, { transparent: true, opacity: 0.55 }), sx * 0.24, -0.08, -0.35);
-        cheek.lookAt(sx * 0.6, -0.2, -1.2); head.add(cheek);
-      }
-      const smile = X.mesh(new THREE.TorusGeometry(0.1, 0.018, 8, 16, Math.PI), smooth(0xa8323a), 0, -0.07, -0.4);
-      smile.rotation.z = Math.PI; smile.rotation.x = 0.25; head.add(smile);
-      const nose = X.mesh(new THREE.SphereGeometry(0.035, 8, 8), skin, 0, -0.01, -0.43); head.add(nose);
-      // hair
-      if (style === 'mia') {
-        const cap = X.mesh(new THREE.SphereGeometry(0.455, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.48), hair, 0, 0.02, 0.03);
-        cap.rotation.x = -0.25; head.add(cap);
-        const back = X.mesh(new THREE.SphereGeometry(0.44, 20, 14), hair, 0, -0.12, 0.12); back.scale.set(1.02, 0.95, 0.85); head.add(back);
-        const part = X.mesh(new THREE.BoxGeometry(0.03, 0.02, 0.3), smooth(0x0e2a33), -0.08, 0.44, -0.12); part.rotation.x = -0.3; head.add(part);
-        const fringe = X.mesh(new THREE.SphereGeometry(0.2, 14, 10), hair, 0.13, 0.27, -0.3); fringe.scale.set(1.3, 0.5, 0.6); fringe.rotation.z = -0.4; head.add(fringe);
-        for (const sx of [-1, 1]) head.add(X.mesh(new THREE.SphereGeometry(0.035, 8, 8), X.glow(0xffffff), sx * 0.43, -0.05, 0));   // earbuds
-      } else {
-        const cap = X.mesh(new THREE.SphereGeometry(0.45, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.42), hair, 0, 0.03, 0.04);
-        cap.rotation.x = -0.2; head.add(cap);
-        const curl = X(new THREE.DodecahedronGeometry(0.075, 0));
-        for (let k = 0; k < 70; k++) {   // little curls all over the cap
-          const th = Math.random() * Math.PI * 2, ph = Math.random() * Math.PI * 0.4;
-          const n = new THREE.Vector3(Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th));
-          if (n.z < -0.55 && n.y < 0.75) continue;   // keep the forehead clear
-          const m = new THREE.Mesh(curl, hair); m.position.copy(n.multiplyScalar(0.45)).add(new THREE.Vector3(0, 0.03, 0.04)); m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
-          head.add(m);
-        }
-      }
-      for (const sx of [-1, 1]) head.add(X.mesh(new THREE.SphereGeometry(0.07, 10, 8), skin, sx * 0.43, -0.03, 0.02));   // ears
-      body.add(head);
-      R.head = head;
-      R.hatSlot = new THREE.Group(); R.hatSlot.position.y = 0.36; R.hatSlot.scale.setScalar(1.35); head.add(R.hatSlot);
-      R.backSlot = new THREE.Group(); R.backSlot.position.set(0, 1.0, 0.27); body.add(R.backSlot);
-      // stubby arms that stick out a little, like the toy
-      const arm = sx => {
-        const p = new THREE.Group(); p.position.set(sx * 0.33, 1.17, 0); body.add(p);
-        const a = new THREE.Group(); a.rotation.z = sx * 0.55; p.add(a);
-        a.add(X.mesh(new THREE.SphereGeometry(0.12, 12, 10), shirt, 0, -0.02, 0));           // sleeve
-        a.add(X.mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.3, 12), skin, 0, -0.2, 0));
-        a.add(X.mesh(new THREE.SphereGeometry(0.11, 12, 10), skin, 0, -0.38, 0));           // mitten hand
-        return p;
-      };
-      R.armL = arm(-1); R.armR = arm(1);
-      // feet: chunky toy shoes that step under the peg body
-      const foot = sx => {
-        const p = new THREE.Group(); p.position.set(sx * 0.16, 0.5, 0); body.add(p);
-        p.add(X.mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.3, 12), pants, 0, -0.18, 0));
-        const s = X.mesh(new THREE.SphereGeometry(0.16, 14, 10), shoe, 0, -0.38, -0.05); s.scale.set(1, 0.6, 1.35); p.add(s);
-        p.add(X.mesh(new THREE.BoxGeometry(0.26, 0.04, 0.38), X.glow(0xffffff), 0, -0.45, -0.05));   // white sole
-        return p;
-      };
-      R.legL = foot(-1); R.legR = foot(1);
+      return { root, body, head, armL, armR, legL, legR, shadow, hatSlot, backSlot, phase: 0, scale: 1 };
     }
 
     /** Dress the runner: { hat, outfit, back } ids from DR.COSMETICS. */
     applyOutfit(eq) {
       const R = this.runner, find = (slot, id) => DR.COSMETICS[slot].find(i => i.id === id) || DR.COSMETICS[slot][0];
-      const style = find('character', eq.character).id;
-      if (R.style !== style) this._buildBody(R, style);
       if (this.outfitRes) this.outfitRes.dispose();
       const X = (this.outfitRes = DR.dress.Res());
       R.hatSlot.clear(); R.backSlot.clear();
@@ -1240,7 +1140,6 @@
         bodyY = Math.abs(Math.cos(R.phase)) * 0.1;
       }
       const k = U.damp(18, dt);
-      if (R.style !== 'explorer') { legL *= 0.6; legR *= 0.6; }   // toy figures take short waddling steps
       R.legL.rotation.x = U.lerp(R.legL.rotation.x, legL, k); R.legR.rotation.x = U.lerp(R.legR.rotation.x, legR, k);
       R.armL.rotation.x = U.lerp(R.armL.rotation.x, armL, k); R.armR.rotation.x = U.lerp(R.armR.rotation.x, armR, k);
       R.body.position.y = U.lerp(R.body.position.y, bodyY, k);

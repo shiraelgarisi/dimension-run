@@ -148,11 +148,6 @@
 
   // Wardrobe items. Free ones are owned from the start; the rest are found in treasure chests.
   DR.COSMETICS = {
-    character: [
-      { id: 'mia', name: 'Mia', icon: '👧', free: true },
-      { id: 'leo', name: 'Leo', icon: '👦', free: true },
-      { id: 'explorer', name: 'Blocky', icon: '🧱', free: true },
-    ],
     hat: [
       { id: 'none', name: 'No hat', icon: '🙂', free: true },
       { id: 'crown', name: 'Golden Crown', icon: '👑' },
@@ -181,7 +176,7 @@
       { id: 'shield', name: 'Shield', icon: '🛡️' },
     ],
   };
-  DR.COSMETIC_SLOTS = { character: 'Character', hat: 'Hats', outfit: 'Outfits', back: 'Back' };
+  DR.COSMETIC_SLOTS = { hat: 'Hats', outfit: 'Outfits', back: 'Back' };
 
   // Time pads (Time Pressure): they change how fast time flows for everything,
   // so obstacle spacing stays exactly as fair as the solver planned it.
