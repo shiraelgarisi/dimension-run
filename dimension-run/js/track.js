@@ -432,7 +432,7 @@
     const gaps = r.shuffle(gapsBetweenRows(rows).filter(g => g.i > 3 && !used((g.a + g.b) / 2)));
     for (const g of gaps.slice(0, cfg.chests || 0)) {
       const p = plan[g.i];
-      const otherWorld = r.chance(0.4);
+      const otherWorld = r.chance(0.25);   // mostly in your world, so you can really get them
       const lane = otherWorld ? r.int(-1, 1) : r.pick(except(p.lane + 1)) - 1;
       out.push({ d: (g.a + g.b) / 2, lane, world: otherWorld ? 1 - p.world : p.world });
     }

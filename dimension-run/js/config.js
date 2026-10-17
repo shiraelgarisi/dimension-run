@@ -44,7 +44,7 @@
       patterns: { lane: 3, lane2: 3, jump: 2, slide: 2, wall: 2.5 },
       coinRate: 0.75,
       shards: 1,
-      chests: 1,
+      chests: 2,
       instability: 0,
       intro: [
         { at: 105, pattern: 'tutLane', hint: 'Dodge with ← → (or A / D)' },
@@ -68,7 +68,7 @@
       patterns: { lane2: 2, jump: 1.2, slide: 1.2, wall: 3, split: 3, gap: 2, trap: 2, beamTrap: 1.5, combo: 2, enemy: 1.5 },
       coinRate: 0.7,
       shards: 2,
-      chests: 1,
+      chests: 3,
       instability: 0,
       intro: [
         { at: 120, pattern: 'introGap', hint: 'A gap in the Light World: jump it or switch' },
@@ -90,7 +90,7 @@
       patterns: { wall: 2, split: 2.5, gap: 1.5, trap: 1.5, combo: 2, zigzag: 3, timing: 2, slalom: 2.5, enemy: 1.5 },
       coinRate: 0.65,
       shards: 2,
-      chests: 2,
+      chests: 3,
       timePads: 0.55,   // share of free stretches that get a time pad (speed up / slow down time)
       instability: 0.1,
       intro: [
@@ -112,7 +112,7 @@
       movingEnemies: true,
       coinRate: 0.6,
       shards: 3,
-      chests: 2,
+      chests: 4,
       instability: 0.6,
       intro: [
         { at: 165, pattern: 'introMover', hint: 'Moving obstacles shift lanes: watch them' },
@@ -138,7 +138,7 @@
       },
       coinRate: 0.55,
       shards: 3,
-      chests: 2,
+      chests: 4,
       instability: 0.85,
       intro: [
         { at: 175, pattern: 'introCollapse', hint: 'The path is collapsing: watch the cracks' },
