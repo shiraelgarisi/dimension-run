@@ -36,6 +36,10 @@
       this.padCursor = 0;
       this.padTaken = new Uint8Array((this.track.pads || []).length);
       this.warp = null;            // active time pad: { kind, t }
+      this.ghostT = 0;             // > 0: you pass through obstacles (after a shield or a revive)
+      this.shields = 0;            // crashes you can still survive this run
+      this.magnet = false;         // pulls in coins from every lane
+      this.revives = 0;
       this.stumbleT = 0;
       this.events = [];
       this.acc = 0;
@@ -97,6 +101,12 @@
       this.scoring.addDistance(speed * dt * (warpCfg ? warpCfg.pointsMult : 1));
       if (this.warp && (this.warp.t -= dt) <= 0) { this.warp = null; this.events.push({ type: 'warpEnd' }); }
       this.stumbleT = Math.max(0, this.stumbleT - dt);
+      if (this.ghostT > 0) {
+        this.ghostT -= dt;
+        // only become solid again with some room before the next obstacle
+        if (this.ghostT <= 0 && this._rowSoon(0.8)) this.ghostT = 0.01;
+        if (this.ghostT <= 0) { this.ghostT = 0; this.events.push({ type: 'solid' }); }
+      }
 
       this._collide();
       if (this.state !== 'running') return;
@@ -124,6 +134,7 @@
           }
           continue;
         }
+        if (this.ghostT > 0) continue;
         const res = DR.collision.testRow(row, this.dim.world, P);
         if (!res) continue;
         if (res.hit === 'bounce') {
@@ -135,11 +146,47 @@
           continue;
         }
         this._die(res.hit, res.cell);
-        return;
+        if (this.state !== 'running' || this.ghostT > 0) return;
       }
     }
 
+    // is an obstacle row (or the one you are in) closer than `sec` seconds?
+    _rowSoon(sec) {
+      const P = this.player;
+      for (let i = this.rowCursor; i < this.track.rows.length; i++) {
+        const r = this.track.rows[i];
+        if (r.kind === 'rift' || r.kind === 'finish') continue;
+        if (r.d + r.depth / 2 + 0.5 < P.d) continue;
+        return r.d - r.depth / 2 - P.d < this.speed * sec;
+      }
+      return false;
+    }
+
+    /** Continue after a crash: back on your feet, passing through obstacles for a moment. */
+    revive() {
+      if (this.state !== 'dead') return false;
+      const P = this.player;
+      this.state = 'running';
+      this.deathKind = null;
+      this.deathCell = null;
+      P.y = 0; P.vy = 0; P.falling = false; P.slideT = 0; P.slideQueued = false; P.jumpBuf = 0;
+      P.lat = P.lane * C.LANE_W; P.fromLane = P.lane;
+      this.stumbleT = 0;
+      this.warp = null;
+      this.ghostT = DR.GHOST_TIME.revive;
+      this.revives++;
+      this.events.push({ type: 'revive' });
+      return true;
+    }
+
     _die(kind, cell) {
+      if (this.shields > 0) {   // the shield takes the hit
+        this.shields--;
+        this.ghostT = DR.GHOST_TIME.shield;
+        this.stumbleT = 0;
+        this.events.push({ type: 'shield', kind });
+        return;
+      }
       this.state = 'dead';
       this.deathKind = kind;
       this.deathCell = cell || null;
@@ -152,14 +199,17 @@
     _pickups() {
       const P = this.player, coins = this.track.coins;
       while (this.coinCursor < coins.length && coins[this.coinCursor].d < P.d - 1.5) this.coinCursor++;
-      for (let i = this.coinCursor; i < coins.length && coins[i].d < P.d + 1.5; i++) {
+      const reach = this.magnet ? 7 : 1.5;
+      for (let i = this.coinCursor; i < coins.length && coins[i].d < P.d + reach; i++) {
         if (this.coinTaken[i]) continue;
         const c = coins[i];
         if (c.world !== this.dim.world) continue;
-        if (Math.abs(c.d - P.d) < 1 && Math.abs(c.lane * C.LANE_W - P.lat) < 1.1 && Math.abs(c.y - (P.y + 0.9)) < 1.3) {
+        const near = Math.abs(c.d - P.d) < 1 && Math.abs(c.lane * C.LANE_W - P.lat) < 1.1 && Math.abs(c.y - (P.y + 0.9)) < 1.3;
+        const pulled = this.magnet && c.d - P.d < 7 && c.d - P.d > -1;
+        if (near || pulled) {
           this.coinTaken[i] = 1;
           this.scoring.coin();
-          this.events.push({ type: 'coin', index: i });
+          this.events.push({ type: 'coin', index: i, magnet: !near });
         }
       }
       const shards = this.track.shards;

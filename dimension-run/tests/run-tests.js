@@ -262,6 +262,44 @@ test('time pads: Time Pressure has both kinds; running over one warps time', () 
   for (let k = 0; k < 120 * 3; k++) sim.step(1 / 120);
   assert(sim.state !== 'running' || sim.timeScale === 1 || sim.warp.kind, 'warp ends');
 });
+// runs a sim with no input until it ends or `t` seconds pass
+function idle(sim, t) { for (let k = 0; k < t * 120 && sim.state === 'running'; k++) sim.step(1 / 120); }
+test('a shield absorbs one crash, then you pass through for a moment', () => {
+  const sim = new DR.Sim(tracks[0]);
+  sim.shields = 1;
+  idle(sim, 60);
+  assert(sim.events.some(e => e.type === 'shield'), 'shield used');
+  assert(sim.shields === 0 && sim.state === 'dead', 'second crash is fatal (' + sim.state + ')');
+});
+test('revive puts you back in the run and you can crash again later', () => {
+  const sim = new DR.Sim(tracks[1]);
+  idle(sim, 60);
+  assert(sim.state === 'dead');
+  const d = sim.player.d;
+  assert(sim.revive() && sim.state === 'running' && sim.ghostT > 0 && !sim.player.falling);
+  idle(sim, 1);
+  assert(sim.state === 'running' && sim.player.d > d + 5, 'ghost carries you past the obstacle');
+  idle(sim, 60);
+  assert(sim.state === 'dead' && sim.revives === 1, 'only ghost for a while');
+  assert(!new DR.Sim(tracks[1]).revive(), 'cannot revive a living runner');
+});
+test('magnet pulls in coins from other lanes', () => {
+  const tr = tracks[0];
+  const count = magnet => { const sim = new DR.Sim(tr); sim.magnet = magnet; const bot = new DR.Autopilot(tr); let t = 0; while (sim.state === 'running' && t < 600) { sim.update(1 / 60, s => bot.tick(s)); t += 1 / 60; } return sim.scoring.coins; };
+  const a = count(false), b = count(true);
+  assert(b > a, `magnet ${b} vs ${a}`);
+});
+test('wallet: spend, buy and use power-ups; bad values are cleaned', () => {
+  DR.save.reset();
+  DR.save.data.wallet = 0;
+  assert(!DR.save.buy('shield'), 'cannot buy without coins');
+  DR.save.addCoins(DR.SHOP.shield.price + 5);
+  assert(DR.save.buy('shield') && DR.save.data.wallet === 5 && DR.save.data.items.shield === 1);
+  assert(DR.save.useItem('shield') && !DR.save.useItem('shield'));
+  memStore['dimensionRun.save'] = JSON.stringify({ unlocked: 1, wallet: -40, items: { shield: 'x', magnet: 3 } });
+  DR.save.load();
+  assert(DR.save.data.wallet === 0 && DR.save.data.items.shield === 0 && DR.save.data.items.magnet === 3);
+});
 test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
   DR.save.reset();
   DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));

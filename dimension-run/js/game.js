@@ -45,6 +45,7 @@
     victoryFx = false;
     wardrobeOpen = false;
     setWarpClass(null);
+    save.write();   // bank the coins of an unfinished run
     UI.hud(false);
     UI.vignette(false);
     document.body.dataset.level = '1';
@@ -64,6 +65,30 @@
     UI.show('wardrobe');
   }
 
+  function showShop() {
+    const render = () => UI.renderShop(save, item => {
+      if (save.buy(item)) { Sound.chest(); render(); UI.renderMenu(save, nextLevelToPlay()); } else Sound.denied();
+    });
+    render();
+    UI.show('shop');
+  }
+
+  // keep running after a crash, for coins
+  function reviveCost() { return DR.REVIVE_COST[Math.min(sim.revives, DR.REVIVE_COST.length - 1)]; }
+  function continueRun() {
+    if (mode !== 'result' || sim.state !== 'dead' || !save.spend(reviveCost())) { Sound.denied(); return; }
+    sim.revive();
+    sim.events.length = 0;
+    Sound.revive();
+    world.reviveFx();
+    UI.flash('w');
+    UI.show(null);
+    UI.hud(true);
+    setMode('countdown');
+    countdownStep = -1;
+    Sound.musicStart(108 + level * 8);
+  }
+
   function showLevels() {
     UI.renderLevels(save, n => startLevel(n));
     UI.show('levels');
@@ -73,6 +98,9 @@
     if (!save.isUnlocked(n)) return;
     Sound.init();
     loadLevel(n);
+    // power-ups from the shop are used up at the start of a run
+    sim.shields = save.useItem('shield') ? 1 : 0;
+    sim.magnet = save.useItem('magnet');
     bot = AUTOPILOT ? new DR.Autopilot(track) : null;
     setMode('countdown');
     countdownStep = -1;
@@ -125,6 +153,8 @@
   UI.init({
     start: () => startLevel(nextLevelToPlay()),
     levels: showLevels,
+    shop: showShop,
+    continueRun,
     wardrobe: showWardrobe,
     exit: exitGame,
     menu: toMenu,
@@ -232,7 +262,8 @@
         case 'switchDenied': Sound.denied(); UI.denied(); break;
         case 'ready': if (track.cfg.cooldown > 0) Sound.ready(); break;
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
-        case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index); break;
+        case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); break;
+        case 'shield': Sound.shield(); world.shieldFx(); UI.flash('w'); UI.banner('🛡️ SHIELD!<small>IT SAVED YOU</small>', 'milestone', 900); break;
         case 'shard': Sound.shard(); world.hideShard(e.index); UI.banner('✦ +250<small>DIMENSION SHARD</small>', '', 900); break;
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
@@ -386,8 +417,12 @@
         if (modeT > 1.4) {
           const score = sim.scoring.score;
           const isBest = save.recordScore(level, score);
+          save.write();
           UI.hud(false);
-          UI.gameOver({ cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest });
+          UI.gameOver({
+            cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest,
+            wallet: save.data.wallet, reviveCost: reviveCost(),
+          });
           mode = 'result';
         }
         break;
@@ -433,6 +468,7 @@
       UI.updateHud({
         score: sim.scoring.score, coins: sim.scoring.coins, shards: sim.scoring.shards, progress: sim.progress,
         world: sim.dim.world, readiness: sim.dim.readiness, cooldownOn: track.cfg.cooldown > 0,
+        shields: sim.shields, magnet: sim.magnet,
       });
     }
     world.update(mode === 'paused' ? 0 : dt, {

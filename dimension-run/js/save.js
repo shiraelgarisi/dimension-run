@@ -12,7 +12,7 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false,
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
@@ -29,6 +29,12 @@
       if (raw.completed && raw.completed[i] === true) d.completed[i] = true;
     }
     d.muted = raw.muted === true;
+    const w = Math.floor(Number(raw.wallet));
+    if (Number.isFinite(w) && w > 0) d.wallet = Math.min(w, 1e7);
+    for (const k in d.items) {
+      const n = Math.floor(Number(raw.items && raw.items[k]));
+      if (Number.isFinite(n) && n > 0) d.items[k] = Math.min(n, 99);
+    }
     if (Array.isArray(raw.owned)) for (const k of raw.owned) if (exists(k) && !d.owned.includes(k)) d.owned.push(k);
     if (raw.equipped && typeof raw.equipped === 'object') {
       for (const slot in d.equipped) {
@@ -50,9 +56,9 @@
       try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* storage blocked: keep playing */ }
     },
     reset() {
-      const { muted, owned, equipped } = this.data;
+      const { muted, owned, equipped, wallet, items } = this.data;
       this.data = defaults();
-      Object.assign(this.data, { muted, owned, equipped });   // found items are kept
+      Object.assign(this.data, { muted, owned, equipped, wallet, items });   // found items and coins are kept
       this.write();
     },
     isUnlocked(n) { return n <= this.data.unlocked; },
@@ -74,6 +80,28 @@
       return isBest;
     },
     setMuted(m) { this.data.muted = !!m; this.write(); },
+    addCoins(n) { this.data.wallet += n; },          // written with the next write()
+    /** Spend coins; false (and nothing changes) if you cannot afford it. */
+    spend(n) {
+      if (this.data.wallet < n) return false;
+      this.data.wallet -= n;
+      this.write();
+      return true;
+    },
+    buy(item) {
+      const it = DR.SHOP[item];
+      if (!it || !this.spend(it.price)) return false;
+      this.data.items[item]++;
+      this.write();
+      return true;
+    },
+    /** Takes one of a power-up for this run, if you have any. */
+    useItem(item) {
+      if (!(this.data.items[item] > 0)) return false;
+      this.data.items[item]--;
+      this.write();
+      return true;
+    },
     owns(slot, id) { return this.data.owned.includes(slot + ':' + id); },
     /** Unlocks a random item you do not own yet; returns { slot, item } or null when you own everything. */
     unlockRandom(rand = Math.random) {

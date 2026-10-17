@@ -178,6 +178,14 @@
   };
   DR.COSMETIC_SLOTS = { hat: 'Hats', outfit: 'Outfits', back: 'Back' };
 
+  // Coin shop. Power-ups are used up automatically at the start of your next run.
+  DR.SHOP = {
+    shield: { name: 'Shield', icon: '🛡️', price: 150, desc: 'Survive one crash' },
+    magnet: { name: 'Magnet', icon: '🧲', price: 100, desc: 'Pull in coins from every lane' },
+  };
+  DR.REVIVE_COST = [50, 100, 200];   // continuing after a crash; doubles every time in the same run
+  DR.GHOST_TIME = { revive: 2.5, shield: 1.4 };
+
   // Time pads (Time Pressure): they change how fast time flows for everything,
   // so obstacle spacing stays exactly as fair as the solver planned it.
   DR.TIME_PADS = {

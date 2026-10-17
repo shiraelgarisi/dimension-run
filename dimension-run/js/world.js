@@ -178,6 +178,14 @@
       this._makeSpeedLines();
       this._makeSmoke();
       this.runner = this._makeRunner();
+      // shield bubble and magnet ring shown around the runner while active
+      this.bubble = new THREE.Mesh(this.G.shieldBall, new THREE.MeshBasicMaterial({ color: 0x7ae8ff, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+      this.magnetFx = new THREE.Group();
+      for (let k = 0; k < 2; k++) {
+        const r = new THREE.Mesh(this.G.magnetRing, new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false }));
+        r.position.y = 0.15 + k * 0.9; this.magnetFx.add(r);
+      }
+      this.scene.add(this.bubble, this.magnetFx);
       this.landmarks = [];
       this.lightningT = 4;
       this.flashV = 0;
@@ -309,6 +317,8 @@
         beam: new THREE.CylinderGeometry(0.5, 0.7, 14, 16, 1, true),
         spark: new THREE.BoxGeometry(0.14, 0.14, 0.14),
         torus: new THREE.TorusGeometry(1, 0.08, 8, 40),
+        shieldBall: new THREE.SphereGeometry(1.25, 24, 16),
+        magnetRing: new THREE.TorusGeometry(0.75, 0.05, 6, 32).rotateX(Math.PI / 2),
       };
     }
 
@@ -1146,6 +1156,20 @@
       R.body.rotation.x = U.lerp(R.body.rotation.x, bodyX, U.damp(14, dt));
       R.body.rotation.z = U.lerp(R.body.rotation.z, U.clamp((P.lane * LW - P.lat) * -0.12, -0.3, 0.3), U.damp(10, dt));
       R.root.scale.setScalar(R.scale);
+      // ghost (after a shield or a revive): the runner blinks while passing through obstacles
+      R.root.visible = !(sim.ghostT > 0 && view.mode === 'play' && Math.sin(t * 30) < 0);
+      const active = view.mode === 'play' || view.mode === 'countdown';
+      this.bubble.visible = active && sim.shields > 0;
+      if (this.bubble.visible) {
+        this.bubble.position.set(x, y + 1.1, z);
+        this.bubble.scale.setScalar(1 + Math.sin(t * 4) * 0.04);
+        this.bubble.material.opacity = 0.14 + Math.sin(t * 3) * 0.05;
+      }
+      this.magnetFx.visible = active && sim.magnet;
+      if (this.magnetFx.visible) {
+        this.magnetFx.position.set(x, y, z);
+        this.magnetFx.children.forEach((r, k) => { const u = (t * 1.2 + k * 0.5) % 1; r.scale.setScalar(0.6 + u * 1.6); r.material.opacity = 0.6 * (1 - u); });
+      }
       if (this.backAnim) this.backAnim(t, running ? 1 : 0);
       R.shadow.position.set(x, 0.03, z);
       R.shadow.visible = !P.falling && R.scale > 0.2;
@@ -1635,10 +1659,18 @@
       }
     }
     playerPos(yOff = 1) { const p = this.runner.root.position; return new THREE.Vector3(p.x, p.y + yOff, p.z); }
-    hideCoin(i) {
+    hideCoin(i, fly) {
       const m = this.coinMeshes[i];
       if (!m) return;
       m.visible = false;
+      if (fly) {   // magnet: the coin zips over to the runner
+        const c = new THREE.Mesh(m.geometry, this.fxMat(m.material === this.M.coin ? 0xffd84a : 0xd08aff));
+        const from = m.position.clone();
+        c.position.copy(from);
+        this.scene.add(c);
+        this.fx.push({ mesh: c, t: 0, dur: 0.25, update: (o, u) => { o.position.lerpVectors(from, this.playerPos(1), u * u); o.scale.setScalar(1 - u * 0.6); } });
+        return;
+      }
       this.burst(m.position, m.material === this.M.coin ? 0xffd84a : 0xd08aff, 6, { speed: 4, life: 0.35 });
     }
     hideShard(i) {
@@ -1677,6 +1709,25 @@
       this.fx.push({ mesh: ring, t: 0, dur: 0.5, update: (r, u) => { r.position.z = this.runner.root.position.z; r.scale.setScalar(0.5 + u * 5); r.material.opacity = 1 - u; } });
       this.burst(this.playerPos(0.5), color, 20, { speed: 7, up: 3, life: 0.6, grav: 4 });
       this.camera.fov += kind === 'fast' ? 9 : -5; this.camera.updateProjectionMatrix();
+    }
+    shieldFx() {
+      const p = this.playerPos(1.1);
+      for (const [delay, w] of [[0, 1], [0.1, 0.7]]) {
+        const s = new THREE.Mesh(this.G.shieldBall, this.fxMat(0x7ae8ff));
+        s.position.copy(p); this.scene.add(s);
+        this.fx.push({ mesh: s, t: -delay, dur: 0.6, update: (o, u) => { o.visible = u > 0; o.position.z = this.runner.root.position.z; o.scale.setScalar(1 + Math.max(0, u) * 3 * w); o.material.opacity = 0.6 * (1 - Math.max(0, u)); } });
+      }
+      this.burst(p, 0x7ae8ff, 26, { speed: 9, up: 3, life: 0.6, grav: 0 });
+      this.shake = Math.max(this.shake, 0.5);
+    }
+    reviveFx() {
+      const p = this.playerPos(0.1);
+      for (const [delay, w] of [[0, 1], [0.15, 0.7], [0.3, 0.45]]) {
+        const ring = new THREE.Mesh(this.G.torus, this.fxMat(0xffffff));
+        ring.rotation.x = Math.PI / 2; ring.position.copy(p); ring.visible = false; this.scene.add(ring);
+        this.fx.push({ mesh: ring, t: -delay, dur: 0.7, update: (o, u) => { o.visible = u > 0; o.scale.setScalar(0.3 + Math.max(0, u) * 5 * w); o.material.opacity = 1 - Math.max(0, u); } });
+      }
+      this.burst(this.playerPos(1), 0xfff2b0, 30, { speed: 6, up: 6, life: 0.9, grav: 4 });
     }
     switchFx(world) {
       const color = world === C.DARK ? 0xb04dff : 0xffd84a;

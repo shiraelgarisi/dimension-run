@@ -4,7 +4,7 @@
   'use strict';
   const DR = window.DR;
   const $ = id => document.getElementById(id);
-  const SCREENS = ['menu', 'levels', 'wardrobe', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'pause', 'over', 'complete', 'victory', 'exit'];
   const RING = 2 * Math.PI * 28;
 
   let hintText = '', bannerTimer = null, lastHud = {};
@@ -15,6 +15,9 @@
       on('startBtn', h.start);
       on('levelsBtn', h.levels);
       on('wardrobeBtn', h.wardrobe);
+      on('shopBtn', h.shop);
+      on('shopBack', h.menu);
+      $('continueBtn').addEventListener('click', () => h.continueRun());
       on('wardrobeBack', h.menu);
       on('exitBtn', h.exit);
       on('levelsBack', h.menu);
@@ -59,6 +62,7 @@
       const cfg = DR.LEVELS[next - 1];
       const total = Object.values(DR.COSMETICS).reduce((n, l) => n + l.length, 0);
       $('wardrobeCount').textContent = `${save.data.owned.length} / ${total}`;
+      $('shopCoins').textContent = save.data.wallet;
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('menuBest').textContent = save.bestTotal();
     },
@@ -80,6 +84,24 @@
         if (unlocked) b.addEventListener('click', () => { DR.Sound.click(); pick(cfg.id); });
         else b.addEventListener('click', () => { DR.Sound.denied(); b.animate([{ transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'none' }], 200); });
         grid.appendChild(b);
+      }
+    },
+
+    renderShop(save, buy) {
+      $('shopWallet').textContent = save.data.wallet;
+      const box = $('shopItems');
+      box.innerHTML = '';
+      for (const id in DR.SHOP) {
+        const it = DR.SHOP[id], can = save.data.wallet >= it.price;
+        const row = document.createElement('div');
+        row.className = 'shop-row';
+        row.innerHTML = `<span class="ico">${it.icon}</span><span class="txt"><b>${it.name}</b><small>${it.desc}</small><small>You have: <b>${save.data.items[id]}</b></small></span>`;
+        const b = document.createElement('button');
+        b.className = 'buy' + (can ? '' : ' poor');
+        b.innerHTML = `<span class="coin-icon"></span> ${it.price}`;
+        b.addEventListener('click', () => buy(id));
+        row.appendChild(b);
+        box.appendChild(row);
       }
     },
 
@@ -120,6 +142,7 @@
       set('score', 'score', s.score);
       set('coins', 'coins', s.coins);
       if (s.shards) { set('shards', 'shards', '✦ ' + s.shards); $('shards').classList.remove('hidden'); }
+      set('powerups', 'powerups', (s.shields ? '🛡️' : '') + (s.magnet ? '🧲' : ''));
       const pct = Math.floor(s.progress * 100);
       if (lastHud.pct !== pct) { lastHud.pct = pct; $('progressFill').style.width = pct + '%'; $('progressPct').textContent = pct + '%'; }
       if (lastHud.world !== s.world) {
@@ -182,7 +205,12 @@
       $('overCoins').textContent = d.coins;
       $('overBest').textContent = d.best;
       $('overNewBest').classList.toggle('hidden', !d.isBest);
+      const can = d.wallet >= d.reviveCost;
+      $('continueBtn').innerHTML = `CONTINUE <span class="coin-icon"></span> ${d.reviveCost}`;
+      $('continueBtn').disabled = !can;
+      $('overWallet').textContent = can ? `You have ${d.wallet} coins` : `You have ${d.wallet} coins: you need ${d.reviveCost} to continue`;
       this.show('over');
+      setTimeout(() => $('retryBtn').focus({ preventScroll: true }), 40);   // Enter retries; continuing spends coins
     },
     complete(d) {
       $('completeName').textContent = `Level ${d.cfg.id} · ${d.cfg.name}`;

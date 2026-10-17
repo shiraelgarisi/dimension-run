@@ -121,6 +121,8 @@
       if (world === 1) { tone(1046, 0.12, { type: 'sine', vol: 0.06 }); tone(1568, 0.18, { type: 'sine', vol: 0.05, at: 0.05 }); }
       else { tone(1320, 0.07, { type: 'square', vol: 0.035 }); tone(1980, 0.12, { type: 'square', vol: 0.035, at: 0.05 }); }
     },
+    shield() { tone(660, 0.35, { type: 'triangle', vol: 0.12, to: 1320 }); noise(0.25, { vol: 0.12, freq: 3000, sweep: 600 }); },
+    revive() { [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, { type: 'sine', vol: 0.1, at: i * 0.07 })); },
     chest() {
       [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.1, at: i * 0.06 }));
       noise(0.4, { vol: 0.12, freq: 5000, type: 'highpass', at: 0.1 });
