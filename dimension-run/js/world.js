@@ -719,6 +719,86 @@
       return { root, body, head, armL, armR, legL, legR, shadow, hatSlot, backSlot, petSlot, phase: 0, scale: 1 };
     }
 
+    /** 3D pieces that make each outfit more than a colour: masks, robes, boots, stripes... */
+    _outfitDetails(id, X) {
+      const R = this.runner;
+      for (const m of this.outfitParts || []) if (m.parent) m.parent.remove(m);
+      this.outfitParts = [];
+      const add = (parent, w, h, d, c, x, y, z) => {
+        const m = X.mesh(new THREE.BoxGeometry(w, h, d), typeof c === 'number' ? X.lam(c) : c, x, y, z);
+        parent.add(m);
+        this.outfitParts.push(m);
+        return m;
+      };
+      const body = R.body, head = R.head, arms = [R.armL, R.armR], legs = [R.legL, R.legR];
+      // body coordinates: torso spans y 0.98..1.68, front face at z -0.17; head centre y 1.88, face at z -0.19
+      // arm pivots hang 0.6 down; leg pivots hang 0.9 down with the boot at the bottom
+      switch (id) {
+        case 'explorer':
+          add(body, 0.62, 0.08, 0.36, 0x6a4422, 0, 1.03, 0);              // belt
+          add(body, 0.14, 0.13, 0.07, 0x8a5a2a, 0.19, 1.0, -0.2);         // pouch
+          add(body, 0.06, 0.06, 0.02, 0xffcf3a, 0.19, 1.03, -0.24);
+          break;
+        case 'ninja': {
+          add(head, 0.4, 0.17, 0.4, 0x1c1c26, 0, -0.11, 0);               // face mask (eyes stay visible)
+          add(head, 0.41, 0.07, 0.41, 0xff2a3a, 0, 0.08, 0);              // headband
+          for (const sx of [-1, 1]) {
+            const t = add(head, 0.06, 0.32, 0.03, 0xff2a3a, sx * 0.06, -0.08, 0.24);
+            t.rotation.x = 0.5; t.rotation.z = sx * 0.25;
+          }
+          add(body, 0.63, 0.09, 0.37, 0xff2a3a, 0, 1.03, 0);              // sash
+          add(body, 0.1, 0.22, 0.04, 0xff2a3a, 0.22, 0.9, -0.17);
+          for (const a of arms) add(a, 0.17, 0.2, 0.18, 0x55555f, 0, -0.42, 0);   // arm wraps
+          for (const l of legs) add(l, 0.23, 0.12, 0.24, 0x55555f, 0, -0.72, 0);
+          break;
+        }
+        case 'royal':
+          add(body, 0.66, 0.46, 0.4, 0x6a2a9a, 0, 0.8, 0);                 // robe over the legs
+          add(body, 0.68, 0.06, 0.42, 0xffcf3a, 0, 0.58, 0);              // gold hem
+          add(body, 0.07, 0.86, 0.02, 0xffcf3a, 0, 1.16, -0.205);         // gold trim down the front
+          for (const sx of [-1, 1]) add(body, 0.18, 0.07, 0.38, 0xffcf3a, sx * 0.33, 1.7, 0);   // shoulder pieces
+          add(body, 0.52, 0.12, 0.42, 0xfaf6ee, 0, 1.73, 0);              // white fur collar
+          for (const x of [-0.12, 0.04, 0.16]) add(body, 0.03, 0.03, 0.01, 0x111111, x, 1.73, -0.215);
+          break;
+        case 'astro': {
+          add(body, 0.32, 0.22, 0.04, 0x9aa0b0, 0, 1.4, -0.19);           // chest control panel
+          [0xff3a3a, 0x3aff7a, 0x3a9aff].forEach((c, i) => add(body, 0.05, 0.05, 0.02, X.glow(c), -0.09 + i * 0.09, 1.43, -0.215));
+          add(body, 0.22, 0.03, 0.02, X.glow(0x7affd8), 0, 1.34, -0.215);
+          for (const sx of [-1, 1]) add(body, 0.2, 0.12, 0.38, 0xf4f4f8, sx * 0.34, 1.66, 0);   // shoulder pads
+          for (const a of arms) add(a, 0.17, 0.06, 0.17, 0xff7a1a, 0, -0.16, 0);                 // orange arm stripes
+          for (const l of legs) { add(l, 0.3, 0.22, 0.42, 0xf4f4f8, 0, -0.8, -0.06); add(l, 0.24, 0.08, 0.24, 0xc8c8d4, 0, -0.42, -0.02); }   // moon boots, knee pads
+          break;
+        }
+        case 'pirate': {
+          for (let i = 0; i < 4; i++) add(body, 0.61, 0.06, 0.35, 0xf4f0e8, 0, 1.1 + i * 0.14, 0);   // striped shirt
+          add(body, 0.62, 0.08, 0.36, 0x1a1a1a, 0, 1.03, 0);              // belt
+          add(body, 0.12, 0.1, 0.02, 0xffcf3a, 0, 1.03, -0.19);           // buckle
+          add(head, 0.11, 0.09, 0.02, 0x111111, -0.09, 0.02, -0.2);       // eyepatch
+          const strap = add(head, 0.42, 0.025, 0.42, 0x111111, 0, 0.04, 0); strap.rotation.z = 0.3;
+          for (const l of legs) add(l, 0.26, 0.12, 0.27, 0x5a3a1a, 0, -0.68, 0);   // boot cuffs
+          break;
+        }
+        case 'jungle': {
+          for (let i = 0; i < 10; i++) {                                    // leaf skirt
+            const a = i / 10 * Math.PI * 2;
+            const leaf = add(body, 0.13, 0.42, 0.03, i % 2 ? 0xc8e83a : 0x9adc2a, Math.sin(a) * 0.34, 0.8, Math.cos(a) * 0.22);
+            leaf.rotation.y = a; leaf.rotation.x = Math.cos(a) * 0.25; leaf.rotation.z = -Math.sin(a) * 0.25;   // flared out
+          }
+          add(body, 0.62, 0.07, 0.36, 0x6a4a1a, 0, 1.0, 0);               // rope belt
+          for (const a of arms) { add(a, 0.17, 0.05, 0.17, 0x3a8a2a, 0, -0.3, 0); add(a, 0.17, 0.05, 0.17, 0x3a8a2a, 0, -0.45, 0); }   // vine bracelets
+          for (const sx of [-1, 1]) for (const y of [-0.04, -0.09]) add(head, 0.08, 0.025, 0.02, 0xff8a1a, sx * 0.12, y, -0.195);   // face paint
+          break;
+        }
+        case 'ice': {
+          add(body, 0.68, 0.15, 0.42, 0xffffff, 0, 1.68, 0);              // fur collar
+          for (const a of arms) add(a, 0.2, 0.09, 0.2, 0xffffff, 0, -0.55, 0);   // fur cuffs
+          for (const l of legs) add(l, 0.27, 0.11, 0.28, 0xffffff, 0, -0.7, 0);  // fur boot tops
+          for (let i = 0; i < 3; i++) { const f = add(body, 0.2, 0.025, 0.02, X.glow(0x39d8ff), 0, 1.36, -0.19); f.rotation.z = i * Math.PI / 3; }   // snowflake badge
+          break;
+        }
+      }
+    }
+
     /** Dress the runner: { hat, outfit, back } ids from DR.COSMETICS. */
     applyOutfit(eq) {
       const R = this.runner, find = (slot, id) => DR.COSMETICS[slot].find(i => i.id === id) || DR.COSMETICS[slot][0];
@@ -730,6 +810,7 @@
       this.backAnim = null;
       const o = find('outfit', eq.outfit);
       this.shirtMat.color.setHex(o.shirt); this.pantsMat.color.setHex(o.pants); this.scarfBase.setHex(o.scarf);
+      this._outfitDetails(o.id, X);
       const gold = X.std(0xffcf3a, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a00 });
       const hat = R.hatSlot, back = R.backSlot;
       switch (eq.hat) {
