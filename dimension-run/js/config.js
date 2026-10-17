@@ -47,12 +47,12 @@
       chests: 1,
       instability: 0,
       intro: [
-        { at: 45, pattern: 'tutLane', hint: 'Dodge with ← → (or A / D)' },
-        { at: 80, pattern: 'tutJump', hint: 'Jump with ↑ (or W)' },
-        { at: 115, pattern: 'tutSlide', hint: 'Slide with ↓ (or S)' },
-        { at: 155, pattern: 'tutWallLight', hint: 'Blocked! Press SPACE to switch worlds' },
-        { at: 195, pattern: 'tutWallDark', hint: 'SPACE again to switch back' },
-        { at: 230, pattern: 'tutGhost', hint: 'Faint shapes show the other world\'s obstacles' },
+        { at: 105, pattern: 'tutLane', hint: 'Dodge with ← → (or A / D)' },
+        { at: 165, pattern: 'tutJump', hint: 'Jump with ↑ (or W)' },
+        { at: 225, pattern: 'tutSlide', hint: 'Slide with ↓ (or S)' },
+        { at: 285, pattern: 'tutWallLight', hint: 'Blocked! Press SPACE to switch worlds' },
+        { at: 345, pattern: 'tutWallDark', hint: 'SPACE again to switch back' },
+        { at: 405, pattern: 'tutGhost', hint: 'Faint shapes show the other world\'s obstacles' },
       ],
     },
     {
@@ -71,10 +71,10 @@
       chests: 1,
       instability: 0,
       intro: [
-        { at: 50, pattern: 'introGap', hint: 'A gap in the Light World: jump it or switch' },
-        { at: 90, pattern: 'introSpikes', hint: 'Dark World spike traps: jump them' },
-        { at: 130, pattern: 'introBeam', hint: 'Energy beams: slide under' },
-        { at: 170, pattern: 'introWraith', hint: 'Wraiths haunt the Dark World: dodge or switch' },
+        { at: 120, pattern: 'introGap', hint: 'A gap in the Light World: jump it or switch' },
+        { at: 185, pattern: 'introSpikes', hint: 'Dark World spike traps: jump them' },
+        { at: 250, pattern: 'introBeam', hint: 'Energy beams: slide under' },
+        { at: 315, pattern: 'introWraith', hint: 'Wraiths haunt the Dark World: dodge or switch' },
       ],
     },
     {
@@ -94,8 +94,8 @@
       timePads: 0.55,   // share of free stretches that get a time pad (speed up / slow down time)
       instability: 0.1,
       intro: [
-        { at: 60, pattern: 'tutWallLight', hint: 'Switching has a cooldown now: watch the ring' },
-        { at: 95, pattern: 'zigzag2', hint: 'Time your switches!' },
+        { at: 140, pattern: 'tutWallLight', hint: 'Switching has a cooldown now: watch the ring' },
+        { at: 210, pattern: 'zigzag2', hint: 'Time your switches!' },
       ],
     },
     {
@@ -115,8 +115,8 @@
       chests: 2,
       instability: 0.6,
       intro: [
-        { at: 70, pattern: 'introMover', hint: 'Moving obstacles shift lanes: watch them' },
-        { at: 115, pattern: 'introRift', hint: 'Rift gates flip your world automatically' },
+        { at: 165, pattern: 'introMover', hint: 'Moving obstacles shift lanes: watch them' },
+        { at: 240, pattern: 'introRift', hint: 'Rift gates flip your world automatically' },
       ],
     },
     {
@@ -141,7 +141,7 @@
       chests: 2,
       instability: 0.85,
       intro: [
-        { at: 70, pattern: 'introCollapse', hint: 'The path is collapsing: watch the cracks' },
+        { at: 175, pattern: 'introCollapse', hint: 'The path is collapsing: watch the cracks' },
       ],
     },
   ];

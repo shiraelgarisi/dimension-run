@@ -323,7 +323,7 @@
     const P = sim.player, rows = track.rows;
     for (let i = sim.rowCursor; i < rows.length; i++) {
       const r = rows[i];
-      if (r.d - P.d > sim.speed * 3) break;
+      if (r.d - P.d > sim.speed * 4.5) break;   // hints show early enough to read
       if (r.hint && r.d + r.depth / 2 > P.d) return UI.touch ? touchHint(r.hint) : r.hint;
     }
     return '';
