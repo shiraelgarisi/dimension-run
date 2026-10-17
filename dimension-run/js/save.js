@@ -6,7 +6,7 @@
   const DR = root.DR;
   const KEY = 'dimensionRun.save';
   const VERSION = 1;
-  const LEVEL_COUNT = 5;
+  const LEVEL_COUNT = (DR.LEVELS || []).length || 5;
 
   const COS = () => DR.COSMETICS || {};
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));

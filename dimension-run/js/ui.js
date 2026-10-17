@@ -138,6 +138,15 @@
       one();
     },
 
+    /** Boss health bar: name (or null to hide) and health 0..1. */
+    bossBar(name, hp) {
+      $('bossBar').classList.toggle('hidden', !name);
+      if (!name) return;
+      $('bossName').textContent = name;
+      $('bossFill').style.width = Math.round(hp * 100) + '%';
+      $('bossBar').classList.toggle('rage', hp < 0.35);
+    },
+
     renderShop(save, buy) {
       $('shopWallet').textContent = save.data.wallet;
       const box = $('shopItems');

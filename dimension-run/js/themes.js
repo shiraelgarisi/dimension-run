@@ -582,15 +582,16 @@
   function skinMaterials() {
     const T = o => Object.assign(o, { transparent: true });
     const lam = c => T(new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
-    return {
+    return Object.assign({
       metal: lam(0x9aa0b8), beacon: T(new THREE.MeshBasicMaterial({ color: 0xff3a3a })),
       dish: lam(0xeeeeee), wood: lam(0x6a3a1a), brass: T(new THREE.MeshStandardMaterial({ color: 0xc8962a, metalness: 0.8, roughness: 0.35, flatShading: true })),
       face: T(new THREE.MeshBasicMaterial({ color: 0xffffff, map: tex('clockFace') })), dark: lam(0x1a120a), iron: T(new THREE.MeshStandardMaterial({ color: 0x8a6a4a, metalness: 0.8, roughness: 0.4, flatShading: true })),
-    };
+    }, DR.dress.extraSkinMaterials ? DR.dress.extraSkinMaterials(T, lam) : {});
   }
   // builds into group g; returns an optional per-frame animation (t) => void
   function skin(kind, g, S, G) {
     const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+    if (SKINS[kind]) return SKINS[kind](g, S, G, add);
     if (kind === 'beacon') {
       add(G.mast, S.metal, 0, 1.4, 0);
       for (const y of [0.8, 1.6, 2.3]) add(G.crossbar, S.metal, 0, y, 0);
@@ -622,14 +623,16 @@
     return null;
   }
   function skinGeometries() {
-    return {
+    return Object.assign(DR.dress.extraSkinGeometries ? DR.dress.extraSkinGeometries() : {}, {
       mast: new THREE.CylinderGeometry(0.08, 0.14, 2.8, 6), crossbar: new THREE.BoxGeometry(0.7, 0.06, 0.06),
       dishGeo: new THREE.SphereGeometry(0.5, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2.4), light: new THREE.SphereGeometry(0.16, 8, 8),
       cabinet: new THREE.BoxGeometry(1.0, 2.8, 0.7), cap: new THREE.BoxGeometry(1.15, 0.2, 0.8), faceGeo: new THREE.CircleGeometry(0.38, 32),
       rod: new THREE.BoxGeometry(0.04, 0.9, 0.02), bob: new THREE.CylinderGeometry(0.14, 0.14, 0.04, 16).rotateX(Math.PI / 2),
       gearDisc: new THREE.CylinderGeometry(1.05, 1.05, 0.35, 20), tooth: new THREE.BoxGeometry(0.3, 0.32, 0.35), hub: new THREE.CylinderGeometry(0.3, 0.3, 0.5, 10),
-    };
+    });
   }
+  const SKINS = {};   // more obstacle skins, added by themes-wild.js
 
-  DR.dress = { LEVEL_THEMES, PROPS, CREATURES, SMOKE, tex, Res, skin, skinMaterials, skinGeometries, gear, clock };
+  // themes-wild.js extends these tables (more levels, textures, props, creatures, smoke, skins)
+  DR.dress = { LEVEL_THEMES, PROPS, CREATURES, SMOKE, SKINS, MAKERS, canvasTex, tex, Res, wings, flapWings, skin, skinMaterials, skinGeometries, gear, clock };
 })();

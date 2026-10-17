@@ -305,3 +305,13 @@ button.world-toggle { width: auto; margin: 6px auto 0; padding: 8px 14px; font-s
 @keyframes raysSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes itemPop { from { transform: scale(0) translateY(60px); opacity: 0; } }
 @keyframes confetti { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 320px)) rotate(var(--r)); } }
+
+/* ---------- 8 levels, boss bar ---------- */
+.level-grid { grid-template-columns: repeat(4, 1fr); }
+.level-card { min-height: 150px; }
+.level-card:nth-child(8) .num { color: #ff4a4a; text-shadow: 0 0 14px rgba(255, 40, 40, 0.8); }
+#bossBar { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-family: 'Bungee', sans-serif; font-size: 12px; color: #ff8a8a; text-shadow: 0 0 8px rgba(255, 40, 40, 0.9); }
+.boss-track { flex: 1; height: 12px; border-radius: 7px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 80, 80, 0.7); overflow: hidden; }
+#bossFill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2a2a, #ff9a3a); box-shadow: 0 0 12px #ff2a2a; transition: width 0.25s; }
+#bossBar.rage #bossFill { animation: pulse 0.5s infinite; }
+@media (max-width: 720px) { .level-grid { grid-template-columns: repeat(2, 1fr); } }

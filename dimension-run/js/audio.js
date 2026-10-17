@@ -109,6 +109,9 @@
     bubbles: (w, b) => { for (let i = 0; i < 3; i++) I.bubble(w + i * (0.06 + Math.random() * 0.08), b, 0.03); },
     squeak: (w, b) => tone(3200, 0.05, { vol: 0.012, to: 4600, when: w, bus: b }),
     rumble: (w, b) => noise(2.2, { vol: 0.09, freq: 110, type: 'lowpass', when: w, bus: b }),
+    pop: (w, b) => { tone(600 + Math.random() * 500, 0.06, { vol: 0.03, to: 1400, when: w, bus: b }); noise(0.03, { vol: 0.03, freq: 3000, when: w + 0.02, bus: b }); },
+    zoom: (w, b) => { tone(180, 1.0, { type: 'sawtooth', vol: 0.02, to: 90, when: w, bus: b, filter: 900 }); noise(0.9, { vol: 0.025, freq: 600, sweep: 2400, when: w, bus: b }); },
+    growl: (w, b) => tone(70, 1.3, { type: 'sawtooth', vol: 0.05, to: 52, when: w, bus: b, attack: 0.2, filter: 300 }),
     crackle: (w, b) => { for (let i = 0; i < 5; i++) noise(0.012, { vol: 0.05, freq: 3000, when: w + Math.random() * 0.4, bus: b, q: 3 }); },
   };
 
@@ -231,6 +234,69 @@
     },
   };
 
+  // levels 6-8
+  Object.assign(SONGS, {
+    // Candy Kingdom: bouncy, sparkly and sweet; the sour side goes off-key and spooky
+    6: {
+      bpm: 124, steps: 16, bars: 4, chords: [[60, 64, 67], [65, 69, 72], [67, 71, 74], [57, 60, 64]],
+      light(s, bar, w, B) {
+        const c = this.chords[bar];
+        if (s % 4 === 0) I.kick(w, B, 0.13);
+        if (s === 4 || s === 12) { I.snare(w, B, 0.035); noise(0.05, { vol: 0.03, freq: 2400, when: w + 0.01, bus: B }); }
+        if (s % 2 === 1) I.hat(w, B, 0.012);
+        if ([0, 3, 6, 8, 10, 14].includes(s)) I.bass(c[0] - 24 + (s === 10 ? 7 : 0), w, B, 0.1, 0.2);
+        if (s % 2 === 0) I.musicBox(c[[0, 1, 2, 1, 2, 0, 1, 2][s / 2]] + 12 + (s >= 8 ? 12 : 0), w, B, 0.03);
+      },
+      dark(s, bar, w, B) {
+        const c = this.chords[bar];
+        if (s === 0 || s === 8) I.kick(w, B, 0.12);
+        if (s === 0) I.softPad([c[0] - 13, c[2] - 12], w, B, 2, 0.03);
+        if (s === 3 || s === 7 || s === 13) I.bell(c[1] + 11 + (s === 13 ? 6 : 0), w, B, 0.022, 1.4);
+      },
+      amb: [[['pop', 0.3]], [['squeak', 0.15], ['owl', 0.03]]],
+    },
+    // Neon Overdrive: 80s synthwave with big drums, pulsing bass and a sparkling arpeggio
+    7: {
+      bpm: 112, steps: 16, bars: 4, chords: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]],
+      light(s, bar, w, B) {
+        const c = this.chords[bar], beat = 60 / bpm / 4;
+        if (s === 0 || s === 8 || s === 10) I.kick(w, B, 0.2);
+        if (s === 4 || s === 12) { noise(0.25, { vol: 0.07, freq: 1500, when: w, bus: B }); tone(190, 0.12, { vol: 0.06, to: 120, when: w, bus: B }); }
+        if (s % 2 === 0) I.hat(w, B, 0.012);
+        tone(NOTE(c[0] - 24), beat * 0.9, { type: 'sawtooth', vol: 0.05, when: w, bus: B, filter: 520 });
+        tone(NOTE(c[[0, 1, 2, 3, 2, 1, 2, 3][s % 8]] + 12), beat * 0.8, { type: 'sawtooth', vol: 0.016, when: w, bus: B, filter: 2600 });
+        if (s === 0) I.pad([c[0], c[1], c[2]], w, B, beat * 16, 0.016, 1600);
+      },
+      dark(s, bar, w, B) {
+        const c = this.chords[bar], beat = 60 / bpm / 4;
+        if (s % 4 === 0) I.kick(w, B, 0.15);
+        if (s % 2 === 0) tone(NOTE(c[(s / 2) % 4] + 12), beat * 1.6, { type: 'square', vol: 0.014, when: w, bus: B, filter: 1800 });
+        if (s === 0) I.sub(c[0] - 24, w, B, 0.12, beat * 14);
+      },
+      amb: [[['zoom', 0.12]], [['zoom', 0.08], ['radio', 0.1]]],
+    },
+    // The Monster King: heavy war drums, low brass, a dark choir and tremolo strings
+    8: {
+      bpm: 138, steps: 16, bars: 4, roots: [50, 50, 46, 45],
+      light(s, bar, w, B) {
+        const r = this.roots[bar], beat = 60 / bpm / 4;
+        if ([0, 3, 8, 11].includes(s)) I.taiko(w, B, s === 0 ? 0.34 : 0.24);
+        if (s === 6 || s === 14) I.tom(130, w, B, 0.12);
+        if (s % 2 === 1) I.hat(w, B, 0.01);
+        tone(NOTE(r - 12 + (s % 4 === 3 ? 1 : 0)), beat * 0.9, { type: 'sawtooth', vol: 0.018, when: w, bus: B, filter: 700 });   // tremolo strings
+        if (s === 0) { I.brass([r - 24, r - 17, r - 12], w, B, 0.045, 0.9); I.softPad([r, r + 3, r + 7], w, B, beat * 16, 0.026); }
+        if (s === 12 && bar % 2) I.brass([r - 12 + 1, r - 5 + 1], w, B, 0.04, 0.35);
+      },
+      dark(s, bar, w, B) {
+        const r = this.roots[bar], beat = 60 / bpm / 4;
+        if (s % 4 === 0) I.taiko(w, B, 0.28);
+        if (s === 0) I.pad([r - 24, r - 21, r - 18], w, B, beat * 16, 0.03, 450);
+        if (s === 8) I.bell(r + 13, w, B, 0.025, 2);
+      },
+      amb: [[['growl', 0.08], ['crackle', 0.2]], [['growl', 0.1], ['rumble', 0.05]]],
+    },
+  });
+
   // ----- music sequencer (scheduled slightly ahead for tight timing) -----
   function schedule() {
     if (!song) return;
@@ -312,6 +378,14 @@
       if (kind === 'fast') { tone(220, 0.4, { type: 'triangle', vol: 0.1, to: 1760 }); noise(0.3, { vol: 0.08, freq: 800, sweep: 8000 }); }
       else { tone(880, 0.6, { type: 'triangle', vol: 0.1, to: 110 }); [0, 0.25, 0.5].forEach(at => noise(0.03, { vol: 0.06, freq: 3500, at, q: 6 })); }
     },
+    roar() {
+      tone(110, 1.4, { type: 'sawtooth', vol: 0.12, to: 55, attack: 0.15, filter: 700 });
+      tone(165, 1.2, { type: 'sawtooth', vol: 0.06, to: 70, attack: 0.15, filter: 500 });
+      noise(1.3, { vol: 0.12, freq: 400, sweep: 150 });
+    },
+    bossThrow() { noise(0.5, { vol: 0.07, freq: 500, sweep: 2500 }); tone(220, 0.3, { type: 'triangle', vol: 0.05, to: 110 }); },
+    bossHit() { tone(880, 0.5, { type: 'triangle', vol: 0.1, to: 220 }); noise(0.4, { vol: 0.15, freq: 1500, sweep: 300 }); this.roar(); },
+    bossDefeat() { this.roar(); [0, 0.35, 0.7, 1.1, 1.5].forEach(at => { tone(70, 0.7, { vol: 0.16, to: 30, at }); noise(0.6, { vol: 0.12, freq: 220, type: 'lowpass', at }); }); },
     thunder() { noise(0.15, { vol: 0.25, freq: 2000, type: 'highpass' }); noise(2.4, { vol: 0.22, freq: 160, type: 'lowpass', at: 0.05 }); },
     boom() { tone(70, 0.8, { vol: 0.18, to: 30 }); noise(0.8, { vol: 0.12, freq: 200, type: 'lowpass' }); },
     shard() { [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.07, at: i * 0.05 })); },

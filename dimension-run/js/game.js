@@ -18,6 +18,7 @@
   // mode: menu | countdown | play | paused | dead | finish | victory | result
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
+  let bossHits = 0;
   let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
   let countdownStep = -1, milestone = 0, finaleShown = false, glitchT = 4, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
 
@@ -125,6 +126,8 @@
     UI.show(null);
     UI.hud(true);
     UI.startLevel(track.cfg, save.best(n));
+    bossHits = 0;
+    UI.bossBar(track.cfg.boss ? track.cfg.boss.name : null, 1);
     UI.vignette(false);
     Sound.setIntensity(0);
     Sound.setSong(n);
@@ -276,7 +279,11 @@
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
         case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); break;
         case 'shield': Sound.shield(); world.shieldFx(); UI.flash('w'); UI.banner('🛡️ SHIELD!<small>IT SAVED YOU</small>', 'milestone', 900); break;
-        case 'shard': Sound.shard(); world.hideShard(e.index); UI.banner('✦ +250<small>DIMENSION SHARD</small>', '', 900); break;
+        case 'shard':
+          Sound.shard(); world.hideShard(e.index);
+          if (track.cfg.boss) { bossHits++; world.bossHit(); Sound.bossHit(); UI.banner('💥 BOSS HIT!<small>THE SHARD BLASTS THE MONSTER KING</small>', 'danger', 900); }
+          else UI.banner('✦ +250<small>DIMENSION SHARD</small>', '', 900);
+          break;
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
           const got = save.unlockRandom();   // saved right away, but kept a surprise until the gift box
@@ -301,7 +308,10 @@
           setMode('dead');
           break;
         case 'finish':
-          if (track.cfg.finale) { setMode('victory'); Sound.musicStop(); Sound.victory(); UI.flash('w'); world.runner.scale = 1; }
+          if (track.cfg.final) {
+            setMode('victory'); Sound.musicStop(); Sound.victory(); UI.flash('w'); world.runner.scale = 1;
+            if (track.cfg.boss) { world.bossDefeat(); Sound.bossDefeat(); UI.bossBar(track.cfg.boss.name, 0); UI.banner('MONSTER KING DEFEATED!<small>YOU SAVED BOTH WORLDS</small>', 'treasure', 2600); }
+          }
           else { setMode('finish'); Sound.finish(); world.confetti(); }
           UI.hint('');
           break;
@@ -393,6 +403,12 @@
         handleEvents();
         if (mode !== 'play') break;
         UI.hint(currentHint() || padHint());
+        // the boss weakens as you get closer to the end, and more with every shard hit
+        if (track.cfg.boss) {
+          const hp = Math.max(0.04, 1 - sim.progress * 0.85 - bossHits * track.cfg.boss.hitPerShard);
+          world.bossHP = hp;
+          UI.bossBar(track.cfg.boss.name, hp);
+        }
         // progress milestones: shockwave + callout at 25 / 50 / 75 %
         if (milestone < 3 && sim.progress >= (milestone + 1) * 0.25) {
           milestone++;
@@ -403,7 +419,7 @@
         // final escape
         if (track.finaleD && sim.player.d > track.finaleD && !finaleShown) {
           finaleShown = true;
-          UI.banner('FINAL ESCAPE!<small>THE DIMENSIONS ARE COLLAPSING · RUN!</small>', 'danger', 2200);
+          UI.banner(track.cfg.finale.text || 'FINAL ESCAPE!<small>RUN!</small>', 'danger', 2200);
           UI.vignette(true);
           Sound.setIntensity(1);
           Sound.setTempoScale(1.2);
@@ -468,7 +484,7 @@
     mode = 'result';
     const unlockedNew = save.data.unlocked > wasUnlocked;
     openGifts(() => {
-      if (track.cfg.finale) {
+      if (track.cfg.final) {
         UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest });
       } else {
         UI.complete({
@@ -518,6 +534,7 @@
   }
   world.onThunder = () => Sound.thunder();
   world.onBoom = () => { if (Math.random() < 0.4) Sound.boom(); };   // not every meteor: it would get noisy
+  world.onBossThrow = () => Sound.bossThrow();
   world.applyOutfit(save.data.equipped);
   toMenu();
   if (params.has('level')) {

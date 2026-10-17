@@ -13,7 +13,7 @@
   const p = new URLSearchParams(location.search);
   const only = p.get('level');
   const stopAt = parseFloat(p.get('stopAt'));
-  const levels = only ? [parseInt(only, 10)] : [1, 2, 3, 4, 5];
+  const levels = only ? [parseInt(only, 10)] : DR.LEVELS.map(c => c.id);
   const DT = 1 / 20;
   const g = window.__dr;
 

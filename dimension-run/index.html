@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -29,6 +29,7 @@
       <div id="levelName">Level 1</div>
       <div class="progress"><div id="progressFill"></div><div class="flag">⚑</div></div>
       <div id="progressPct">0%</div>
+      <div id="bossBar" class="hidden"><span id="bossName">BOSS</span><div class="boss-track"><div id="bossFill"></div></div></div>
     </div>
     <div class="hud-right">
       <div class="best">BEST <b id="hudBest">0</b></div>
@@ -193,8 +194,8 @@
   <div id="victory" class="screen hidden">
     <div class="panel victory-panel">
       <div class="stars">✦ ✧ ✦</div>
-      <h1 class="logo small"><span class="l">YOU</span><span class="d">ESCAPED</span></h1>
-      <p class="msg">You mastered both dimensions and escaped the collapse.<br>Dimension Run complete!</p>
+      <h1 class="logo small"><span class="l">YOU</span><span class="d">WON!</span></h1>
+      <p class="msg">You defeated the Monster King and saved both worlds.<br>Dimension Run complete!</p>
       <div class="stats">
         <div><small>FINAL LEVEL</small><b id="vScore">0</b></div>
         <div><small>COINS</small><b id="vCoins">0</b></div>
@@ -217,22 +218,23 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=16"></script>
-  <script src="js/util.js?v=16"></script>
-  <script src="js/config.js?v=16"></script>
-  <script src="js/save.js?v=16"></script>
-  <script src="js/track.js?v=16"></script>
-  <script src="js/collision.js?v=16"></script>
-  <script src="js/player.js?v=16"></script>
-  <script src="js/dimension.js?v=16"></script>
-  <script src="js/scoring.js?v=16"></script>
-  <script src="js/sim.js?v=16"></script>
-  <script src="js/autopilot.js?v=16"></script>
-  <script src="js/audio.js?v=16"></script>
-  <script src="js/pets.js?v=16"></script>
-  <script src="js/themes.js?v=16"></script>
-  <script src="js/world.js?v=16"></script>
-  <script src="js/ui.js?v=17"></script>
-  <script src="js/game.js?v=17"></script>
+  <script src="vendor/three.min.js?v=21"></script>
+  <script src="js/util.js?v=21"></script>
+  <script src="js/config.js?v=21"></script>
+  <script src="js/save.js?v=21"></script>
+  <script src="js/track.js?v=21"></script>
+  <script src="js/collision.js?v=21"></script>
+  <script src="js/player.js?v=21"></script>
+  <script src="js/dimension.js?v=21"></script>
+  <script src="js/scoring.js?v=21"></script>
+  <script src="js/sim.js?v=21"></script>
+  <script src="js/autopilot.js?v=21"></script>
+  <script src="js/audio.js?v=21"></script>
+  <script src="js/pets.js?v=21"></script>
+  <script src="js/themes.js?v=21"></script>
+  <script src="js/themes-wild.js?v=21"></script>
+  <script src="js/world.js?v=21"></script>
+  <script src="js/ui.js?v=21"></script>
+  <script src="js/game.js?v=21"></script>
 </body>
 </html>

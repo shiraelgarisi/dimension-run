@@ -115,7 +115,7 @@ test('save: unlock, best score, persistence, corrupted data', () => {
   assert(DR.save.isUnlocked(1) && !DR.save.isUnlocked(2), 'falls back to defaults');
   memStore['dimensionRun.save'] = JSON.stringify({ v: 1, unlocked: 99, best: { 1: 'x', 2: 50 } });
   DR.save.load();
-  assert(DR.save.data.unlocked === 5 && DR.save.best(1) === 0 && DR.save.best(2) === 50, 'sanitised');
+  assert(DR.save.data.unlocked === DR.LEVELS.length && DR.save.best(1) === 0 && DR.save.best(2) === 50, 'sanitised');
 });
 
 // ---------------------------------------------------------------
@@ -176,6 +176,9 @@ test('each level introduces its signature mechanic', () => {
   assert(s[3].movers > 0 && s[3].rifts > 0, 'L4 movers and rifts');
   assert(s[4].collapse > 0 && s[4].movers > 0, 'L5 collapse and movers');
   assert(tracks[4].finaleD && tracks[4].rows.some(r => r.d > tracks[4].finaleD && r.kind !== 'finish'), 'L5 finale has obstacles');
+  const last = tracks[tracks.length - 1];
+  assert(last.cfg.boss && last.cfg.final && DR.LEVELS.filter(c => c.final).length === 1, 'only the last level is the boss / final level');
+  assert(last.shards.length >= 4, 'boss level has shards to hit the boss');
 });
 
 // ---------------------------------------------------------------

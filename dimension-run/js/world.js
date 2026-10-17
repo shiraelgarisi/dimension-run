@@ -259,6 +259,8 @@
       });
       this.M.beamGlow.userData.baseOpacity = 0.3;
       this.obMats[1].push(this.M.beamGlow);
+      Object.assign(this.M, { monBody: lam(0x5a1a7a), monEye: basic(0xfff4e0), monPupil: basic(0xff2a1a), monHorn: lam(0xe8dcc0), monTooth: lam(0xffffff) });
+      this.obMats[1].push(this.M.monBody, this.M.monEye, this.M.monPupil, this.M.monHorn, this.M.monTooth);
       this.ghostMats = [this.M.ghostGap0, this.M.ghostGap1];
 
       // floors (not ghosted: only the active world's floor is shown)
@@ -331,14 +333,14 @@
         uMoonCol: { value: new THREE.Color('#d8c0ff') }, uAurora: { value: 0 }, uFlash: { value: 0 }, uGlitch: { value: 0 },
         uMirror: { value: 0 }, uStarsL: { value: 0 }, uNeb: { value: 0 }, uVortex: { value: 0 },
         uNebL1: { value: new THREE.Color() }, uNebL2: { value: new THREE.Color() }, uNebD1: { value: new THREE.Color() }, uNebD2: { value: new THREE.Color() },
-        uVortexL: { value: new THREE.Color() }, uVortexD: { value: new THREE.Color() },
+        uVortexL: { value: new THREE.Color() }, uVortexD: { value: new THREE.Color() }, uSynth: { value: 0 },
       };
       const mat = new THREE.ShaderMaterial({
         uniforms, side: THREE.BackSide, depthWrite: false, fog: false,
         vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
         fragmentShader: `
           uniform vec3 lTop, lHor, dTop, dHor, uSunDir, uSunCol, uMoonCol, uNebL1, uNebL2, uNebD1, uNebD2, uVortexL, uVortexD;
-          uniform float uMix, uTime, uDanger, uSunSize, uAurora, uFlash, uGlitch, uMirror, uStarsL, uNeb, uVortex; varying vec3 vDir;
+          uniform float uMix, uTime, uDanger, uSunSize, uAurora, uFlash, uGlitch, uMirror, uStarsL, uNeb, uVortex, uSynth; varying vec3 vDir;
           float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,45.164))) * 43758.5453); }
           void main(){
             // floating levels (space, time) have sky below the horizon too
@@ -346,7 +348,16 @@
             vec3 l = mix(lHor, lTop, pow(h, 0.55));
             float s = max(dot(vDir, uSunDir), 0.0);
             float se = 0.0025 * uSunSize;
-            l += uSunCol * (smoothstep(1.0 - se, 1.0 - se * 0.4, s) + pow(s, 8.0 / uSunSize) * 0.18 * uSunSize);
+            float sm = smoothstep(1.0 - se, 1.0 - se * 0.4, s);
+            if (uSynth > 0.5) {
+              // retro sunset sun: yellow to pink, sliced by stripes that widen towards the horizon
+              float dy = vDir.y - uSunDir.y;
+              vec3 sc = mix(vec3(1.0, 0.2, 0.6), vec3(1.0, 0.85, 0.25), smoothstep(-0.1, 0.12, dy));
+              float gap = dy < 0.0 ? step(0.25 + (-dy) * 5.0, fract(-dy * 50.0)) : 1.0;
+              l = mix(l, sc, sm * gap * 0.92) + vec3(1.0, 0.2, 0.55) * pow(s, 6.0) * 0.18;
+            } else {
+              l += uSunCol * (sm + pow(s, 8.0 / uSunSize) * 0.18 * uSunSize);
+            }
             vec3 d = mix(dHor, dTop, pow(h, 0.5));
             vec3 cell = floor(vDir * 170.0); float sv = hash(cell);
             float st = step(0.995 - 0.004 * uStarsL, sv) * mix(smoothstep(0.04, 0.35, h), 1.0, uMirror) * (0.55 + 0.45 * sin(uTime * 3.0 + sv * 30.0));
@@ -517,6 +528,9 @@
       for (let i = 0; i < N; i++) { pos[i * 3] = (rnd() - 0.5) * 50; pos[i * 3 + 1] = rnd() * 18; pos[i * 3 + 2] = -rnd() * 110 + 10; }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const col = new Float32Array(N * 3), c = new THREE.Color();
+      for (let i = 0; i < N; i++) { c.setHSL(rnd(), 0.9, 0.62); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
       const m = new THREE.PointsMaterial({ map: this.tex.dot, size: 0.2, transparent: true, depthWrite: false });
       this.weather = new THREE.Points(g, m);
       this.weather.frustumCulled = false;
@@ -571,18 +585,32 @@
       u.uNebL1.value.set(nl[0]); u.uNebL2.value.set(nl[1]); u.uNebD1.value.set(nd[0]); u.uNebD2.value.set(nd[1]);
       u.uVortex.value = sk.vortex || 0;
       u.uVortexL.value.set(sk.vortexL || '#ffffff'); u.uVortexD.value.set(sk.vortexD || '#ffffff');
+      u.uSynth.value = sk.synth || 0;
       this.groundL.visible = this.groundR.visible = !T.noGround;
 
       // floors
       const fl = T.floor;
-      const FT = { stone: this.tex.lightFloor, metal: DR.dress.tex('metalFloor'), clock: DR.dress.tex('clockFloor'), basalt: DR.dress.tex('basaltFloor') };
-      const lava = fl.tex === 'basalt' ? DR.dress.tex('lavaGlow') : null;
+      const FT = {
+        stone: this.tex.lightFloor, metal: DR.dress.tex('metalFloor'), clock: DR.dress.tex('clockFloor'), basalt: DR.dress.tex('basaltFloor'),
+        candy: DR.dress.tex('candyFloor'), grid: DR.dress.tex('gridFloor'),
+      };
+      const glowName = fl.glow || (fl.tex === 'basalt' ? 'lavaGlow' : null);
+      const glow = glowName ? DR.dress.tex(glowName) : null;
       for (const m of [this.F[0].top]) {
         m.map = FT[fl.tex] || FT.stone;
-        m.emissiveMap = lava;
-        m.emissive.setHex(lava ? 0xffffff : 0x000000);
+        m.emissiveMap = glow;
+        m.emissive.setHex(glow ? (fl.glowColor || 0xffffff) : 0x000000);
         m.needsUpdate = true;
       }
+      // a glowing grid on the ground that runs to the horizon (Neon Overdrive)
+      if (!this.groundGrid) {
+        this.groundGrid = DR.dress.tex('gridGlow').clone();
+        this.groundGrid.needsUpdate = true;
+        this.groundGrid.repeat.set(70, 90);
+      }
+      this.groundMat.emissiveMap = T.groundGlow ? this.groundGrid : null;
+      this.groundMat.emissive.setHex(T.groundGlow ? T.groundGlow[0] : 0x000000);
+      this.groundMat.needsUpdate = true;
       this.F[0].crack.map = this.F[0].top.map; this.F[0].crack.needsUpdate = true;
       this.F[0].top.color.setHex(fl.light); this.F[0].crack.color.setHex(fl.light);
       this.F[0].curb.color.setHex(fl.curb);
@@ -599,7 +627,8 @@
       this.ambient[1].material.color.setHex(T.ambient[1]);
       // weather
       const wt = T.weather, wm = this.weather.material;
-      wm.color.setHex(wt.color); wm.size = wt.size; wm.opacity = wt.opacity;
+      wm.color.setHex(wt.rainbow ? 0xffffff : wt.color); wm.size = wt.size; wm.opacity = wt.opacity;
+      wm.vertexColors = !!wt.rainbow;
       wm.blending = wt.additive ? THREE.AdditiveBlending : THREE.NormalBlending;
       wm.needsUpdate = true;
       this.weather.geometry.setDrawRange(0, wt.count);
@@ -625,7 +654,7 @@
       for (const p of T.props || []) {
         const n = p.place === 'sky' ? 1 : p.n;
         for (let i = 0; i < n; i++) {
-          const g = DR.dress.PROPS[p.kind](R);
+          const g = DR.dress.PROPS[p.kind](R, p.variant);
           const ud = g.userData, side = i % 2 ? 1 : -1;
           const sr = ud.s || [1, 1], s = sr[0] + rnd() * (sr[1] - sr[0]);
           const yr = ud.y || [0, 0], y = yr[0] + rnd() * (yr[1] - yr[0]);
@@ -662,7 +691,7 @@
       this.creatures = [];
       for (const spec of T.creatures || []) {
         for (let i = 0; i < spec.n; i++) {
-          const c = DR.dress.CREATURES[spec.kind](R);
+          const c = DR.dress.CREATURES[spec.kind](R, spec.variant);
           c.world = spec.world;
           c.seed = rnd() * 100;
           c.vel = new THREE.Vector3();
@@ -913,6 +942,16 @@
       this.padMeshes = [];
       this.chestMeshes = [];
       this.portal = null;
+      if (this.bossRes) { this.scene.remove(this.boss.g); this.bossRes.dispose(); }
+      this.boss = null;
+      this.bossRows = new Map();
+      this.bossThrown = new Set();
+      if (track.cfg.boss) {
+        this.bossRes = DR.dress.Res();
+        this.boss = DR.dress.boss(this.bossRes);
+        this.scene.add(this.boss.g);
+        this.bossHP = 1; this.bossHitT = 0; this.bossDying = -1; this.bossThrowT = 0; this.bossSoundT = 0;
+      }
 
       this._buildFloor(track);
       track.rows.forEach((row, i) => {
@@ -1078,6 +1117,11 @@
         } else if (variant === 'obelisk') {
           add(G.obelisk, M.obelisk, 0, 1.45, 0);
           add(G.rune, M.rune, 0, 1.45, -0.52);
+        } else if (variant === 'wraith' && this.lt.monsters) {
+          const body = DR.dress.minion(M);
+          g.add(body);
+          add(G.ring, M.wraithRing, 0, 0.12, 0);
+          this.enemies.push({ body, seed: rnd() * 10 });
         } else if (variant === 'wraith') {
           const body = new THREE.Group();
           g.add(body);
@@ -1125,6 +1169,12 @@
         g.position.set(lane * LW, 0, -row.d);
       }
       this.levelGroup.add(g);
+      if (this.boss) {
+        g.visible = false;
+        g.userData.homeY = 0;
+        if (!this.bossRows.has(row)) this.bossRows.set(row, []);
+        this.bossRows.get(row).push(g);
+      }
     }
 
     _buildRift(row) {
@@ -1152,7 +1202,7 @@
     _buildFinish(track, row) {
       const g = new THREE.Group();
       g.position.z = -row.d;
-      if (track.cfg.finale) {
+      if (track.cfg.final) {
         // the final portal out of the collapsing dimensions
         const ringMat = new THREE.MeshBasicMaterial({ color: 0xfff2b0 });
         const ring = new THREE.Mesh(this.G.torus, ringMat);
@@ -1360,6 +1410,7 @@
       lc('sun', this.sun.color);
       this.sun.intensity = U.lerp(TH[0].sunI, TH[1].sunI, ms);
       lc('ground', this.groundMat.color);
+      if (this.lt.groundGlow) this.groundMat.emissive.setHex(this.lt.groundGlow[0]).lerp(new THREE.Color(this.lt.groundGlow[1]), ms);
       lc('abyss', this.abyssMat.color);
       this.sky.material.uniforms.uMix.value = ms;
       this.scarfMat.color.copy(this.scarfBase).lerp(new THREE.Color(0xb04dff), ms);
@@ -1388,6 +1439,7 @@
 
     _updateLevelObjects(dt, t, sim) {
       const P = sim.player, speed = sim.speed;
+      if (this.boss) this._updateBoss(dt, t, sim);
       for (const mv of this.movers) {
         const tA = (mv.row.d - P.d) / speed;
         // same timing the solver assumes: settled MOVER_SETTLE seconds before you arrive
@@ -1665,6 +1717,105 @@
           }
         },
       });
+    }
+
+    // ---------------- the Monster King ----------------
+    _updateBoss(dt, t, sim) {
+      const B = this.boss, P = sim.player, g = B.g;
+      const rz = -P.d, rage = this.bossHP < 0.35 ? 1 : 0;
+      if (this.bossDying >= 0) {   // defeated: spins, shrinks and falls, exploding
+        this.bossDying += dt;
+        const u = this.bossDying;
+        g.rotation.z += dt * (2 + u * 4);
+        g.position.y -= dt * u * 6;
+        g.scale.setScalar(4.2 * Math.max(0.01, 1 - u / 2.4));
+        B.skin.emissive.setHex(Math.sin(u * 40) > 0 ? 0xffffff : 0xff2a00);
+        if ((u * 8 | 0) !== ((u - dt) * 8 | 0) && u < 2.4) {
+          const p = g.position.clone().add(new THREE.Vector3((rnd() - 0.5) * 8, (rnd() - 0.5) * 6, (rnd() - 0.5) * 4));
+          this.burst(p, rnd() < 0.5 ? 0xff6a1a : 0xffe066, 18, { speed: 12, up: 2, life: 0.9, size: 3, grav: 2 });
+          this.shake = Math.max(this.shake, 0.35);
+        }
+        if (u > 2.4) g.visible = false;
+        return;
+      }
+      // hovers ahead of you, swaying, angrier when hurt
+      const speed = 1 + rage * 0.8;
+      g.position.set(Math.sin(t * 0.45 * speed) * 4.5, 8.5 + Math.sin(t * 1.3 * speed) * 0.9, rz - 44);
+      g.rotation.z = Math.sin(t * 0.7) * 0.12;
+      g.rotation.y = Math.sin(t * 0.45 * speed) * -0.25;
+      B.eye.lookAt(this.runner.root.position.x, 1.5, this.runner.root.position.z);
+      B.lid.rotation.x = Math.sin(t * 0.9) > 0.97 ? 0 : -1.3 - rage * 0.25;   // blinks; narrows its eye when angry
+      B.tentacles.forEach((c, k) => {
+        let seg = c;
+        for (let i = 0; seg && i < 8; i++) {
+          seg.rotation.x = Math.sin(t * 2.2 * speed + k + i * 0.6) * 0.35;
+          seg.rotation.z = Math.cos(t * 1.7 * speed + k * 2 + i * 0.5) * 0.25;
+          seg = seg.children.find(o => o.isGroup);
+        }
+      });
+      B.aura.material.opacity = 0.1 + Math.sin(t * 3) * 0.04 + rage * 0.12;
+      B.aura.scale.setScalar(1 + Math.sin(t * 2) * 0.05);
+      this.bossHitT = Math.max(0, this.bossHitT - dt);
+      B.skin.emissive.setHex(this.bossHitT > 0 ? 0xffffff : rage ? 0x5a0000 : 0x200008);
+      // throws the next rows of obstacles: they fly from its mouth and land on their lanes
+      this.bossThrowT = Math.max(0, this.bossThrowT - dt);
+      B.jaw.rotation.x = this.bossThrowT > 0 ? 0.6 : 0.05 + Math.sin(t * 2) * 0.05;
+      B.mouth.visible = this.bossThrowT > 0;
+      const mouth = B.mouth.getWorldPosition(new THREE.Vector3());
+      for (const [row, groups] of this.bossRows) {
+        if (this.bossThrown.has(row)) continue;
+        if (row.d - P.d > sim.speed * 2.4) continue;
+        this.bossThrown.add(row);
+        this.bossThrowT = 0.5;
+        if (this.onBossThrow && this.bossSoundT <= 0) { this.onBossThrow(); this.bossSoundT = 0.45; }
+        for (const gr of groups) {
+          gr.visible = true;
+          const from = mouth.clone(), toZ = gr.position.z;
+          const ring = new THREE.Mesh(this.G.ring, this.fxMat(0xff2a2a));
+          ring.position.set(gr.position.x, 0.08, toZ);
+          this.scene.add(ring);
+          this.fx.push({ mesh: ring, t: 0, dur: 1.0, update: (m, u) => { m.scale.setScalar(1.4 - u * 0.4 + Math.sin(u * 30) * 0.08); m.material.opacity = u < 0.85 ? 0.9 : (1 - u) * 6; m.position.x = gr.position.x; } });
+          gr.userData.flight = { from, toZ, t: 0 };
+        }
+      }
+      this.bossSoundT -= dt;
+      for (const groups of this.bossRows.values()) {
+        for (const gr of groups) {
+          const f = gr.userData.flight;
+          if (!f) continue;
+          f.t += dt / 0.85;
+          const u = Math.min(1, f.t);
+          gr.position.z = U.lerp(f.from.z, f.toZ, u);
+          gr.position.y = U.lerp(f.from.y, 0, u) + Math.sin(u * Math.PI) * 6;
+          gr.rotation.x = (1 - u) * 6;
+          gr.scale.setScalar(0.4 + u * 0.6);
+          if (u >= 1) {
+            gr.userData.flight = null;
+            gr.position.y = 0; gr.rotation.x = 0; gr.scale.setScalar(1);
+            this.burst(new THREE.Vector3(gr.position.x, 0.3, gr.position.z), 0xff8a4a, 10, { speed: 6, up: 3, life: 0.5, grav: 10 });
+            this.shake = Math.max(this.shake, 0.12);
+          }
+        }
+      }
+    }
+    bossHit() {
+      if (!this.boss) return;
+      this.bossHitT = 0.25;
+      this.burst(this.boss.g.position, 0xffffff, 30, { speed: 14, up: 2, life: 0.7, size: 2.5, grav: 0 });
+      this.burst(this.boss.g.position, 0x7affd8, 20, { speed: 10, up: 2, life: 0.6, size: 2, grav: 0 });
+      this.shake = Math.max(this.shake, 0.3);
+      // a bolt of light from the runner to the boss
+      const pts = [this.playerPos(1.2), this.boss.g.position.clone()];
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x9affff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      line.userData.ownGeo = true;
+      this.scene.add(line);
+      this.fx.push({ mesh: line, t: 0, dur: 0.35, update: (m, u) => { m.material.opacity = 1 - u; } });
+    }
+    bossDefeat() {
+      if (!this.boss || this.bossDying >= 0) return;
+      this.bossDying = 0;
+      this.bossHP = 0;
+      this.flashV = 1;
     }
 
     // progress milestone: a shockwave on the floor in the level's colour
