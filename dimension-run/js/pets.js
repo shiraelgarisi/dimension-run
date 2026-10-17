@@ -38,17 +38,26 @@
       box(0.07, 0.05, 0.03, K, 0, -0.07, -0.16, head);
       box(0.08, 0.08, 0.06, W, 0, 0.42, 0.27);
     } else if (id === 'corgi') {
-      const O = 0xe08a3a, W = 0xfaf2e4;
-      box(0.34, 0.24, 0.62, O, 0, 0.3, 0);
-      box(0.3, 0.1, 0.5, W, 0, 0.19, -0.02);             // white belly
-      fourLegs(W, 0.09, 0.14, 0.11, -0.2, 0.2, 0.18);
-      head.position.set(0, 0.5, -0.34);
-      box(0.28, 0.24, 0.26, O, 0, 0, 0, head);
-      box(0.16, 0.12, 0.14, W, 0, -0.06, -0.16, head);   // snout
-      box(0.06, 0.05, 0.03, 0x1a1a1e, 0, -0.02, -0.235, head);
-      for (const s of [-1, 1]) { const e = box(0.09, 0.16, 0.04, O, s * 0.1, 0.18, 0.02, head); e.rotation.z = -s * 0.2; }
-      eyes(0.03, -0.135, 0.07);
-      const t = tailPivot(0, 0.36, 0.31); box(0.07, 0.07, 0.1, O, 0, 0, 0.04, t);
+      // what makes a corgi: long low body, tiny legs, big pointed ears, fox snout, white blaze and fluffy rear
+      const O = 0xe8923a, W = 0xfaf2e4, P = 0xffa8b8;
+      box(0.32, 0.22, 0.66, O, 0, 0.27, 0);
+      box(0.28, 0.08, 0.56, W, 0, 0.17, -0.02);           // white belly
+      box(0.26, 0.2, 0.08, W, 0, 0.3, -0.33);             // white chest
+      box(0.3, 0.18, 0.06, W, 0, 0.27, 0.34);             // fluffy white rear
+      fourLegs(W, 0.09, 0.1, 0.1, -0.22, 0.22, 0.17);
+      head.position.set(0, 0.47, -0.37);
+      box(0.27, 0.22, 0.24, O, 0, 0, 0, head);
+      box(0.05, 0.2, 0.02, W, 0, 0.03, -0.125, head);     // white blaze up the forehead
+      box(0.14, 0.1, 0.18, W, 0, -0.06, -0.19, head);     // long fox-like snout
+      box(0.06, 0.05, 0.04, 0x1a1a1e, 0, -0.03, -0.29, head);   // nose on the tip
+      for (const s of [-1, 1]) {                           // big upright triangle ears
+        const e = X.mesh(new THREE.ConeGeometry(0.08, 0.24, 4), X.lam(O), s * 0.085, 0.21, 0.01);
+        e.rotation.y = Math.PI / 4; e.rotation.z = -s * 0.22; head.add(e);
+        const inner = X.mesh(new THREE.ConeGeometry(0.045, 0.15, 4), X.lam(P), s * 0.08, 0.19, -0.035);
+        inner.rotation.y = Math.PI / 4; inner.rotation.z = -s * 0.22; head.add(inner);
+      }
+      eyes(0.04, -0.125, 0.075);
+      const t = tailPivot(0, 0.34, 0.37); box(0.06, 0.06, 0.05, O, 0, 0, 0.02, t);   // tiny stub tail
     } else if (id === 'chick') {
       const Y = 0xffd83a, O = 0xff9a1a;
       box(0.34, 0.3, 0.34, Y, 0, 0.3, 0);
