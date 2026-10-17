@@ -24,9 +24,17 @@
 
   function setMode(m) { mode = m; modeT = 0; if (m !== 'paused' && m !== 'result') viewMode = m; }
 
-  function loadLevel(n) {
+  // every run gets a new random layout (obstacles, coins, chests, pads); the solver keeps each one fair.
+  // ?seed=123 pins a layout, for testing.
+  function randomTrack(n) {
+    const cfg = DR.LEVELS[n - 1];
+    const seed = params.has('seed') ? parseInt(params.get('seed'), 10) : (Math.random() * 1e9) | 0;
+    try { return DR.track.generate(cfg, seed); } catch (e) { return getTrack(n); }   // never expected, but never stuck
+  }
+
+  function loadLevel(n, fresh) {
     level = n;
-    track = getTrack(n);
+    track = fresh ? randomTrack(n) : getTrack(n);
     sim = new DR.Sim(track);
     world.buildLevel(track);
     world.runner.scale = 1;
@@ -108,7 +116,7 @@
   function startLevel(n) {
     if (!save.isUnlocked(n)) return;
     Sound.init();
-    loadLevel(n);
+    loadLevel(n, true);
     // power-ups from the shop are used up at the start of a run
     sim.shields = save.useItem('shield') ? 1 : 0;
     sim.magnet = save.useItem('magnet');

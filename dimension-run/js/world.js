@@ -592,7 +592,7 @@
       const fl = T.floor;
       const FT = {
         stone: this.tex.lightFloor, metal: DR.dress.tex('metalFloor'), clock: DR.dress.tex('clockFloor'), basalt: DR.dress.tex('basaltFloor'),
-        candy: DR.dress.tex('candyFloor'), grid: DR.dress.tex('gridFloor'),
+        candy: DR.dress.tex('candyFloor'), grid: DR.dress.tex('gridFloor'), cloud: DR.dress.tex('cloudFloor'),
       };
       const glowName = fl.glow || (fl.tex === 'basalt' ? 'lavaGlow' : null);
       const glow = glowName ? DR.dress.tex(glowName) : null;

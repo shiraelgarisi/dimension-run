@@ -315,3 +315,6 @@ button.world-toggle { width: auto; margin: 6px auto 0; padding: 8px 14px; font-s
 #bossFill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2a2a, #ff9a3a); box-shadow: 0 0 12px #ff2a2a; transition: width 0.25s; }
 #bossBar.rage #bossFill { animation: pulse 0.5s infinite; }
 @media (max-width: 720px) { .level-grid { grid-template-columns: repeat(2, 1fr); } }
+/* the gift's light rays, item and confetti are decoration: taps go through them to the buttons */
+.gift-rays, .gift-item, .gift-confetti { pointer-events: none; }
+.gift-buttons { position: relative; z-index: 6; }

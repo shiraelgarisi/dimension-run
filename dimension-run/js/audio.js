@@ -255,25 +255,29 @@
       },
       amb: [[['pop', 0.3]], [['squeak', 0.15], ['owl', 0.03]]],
     },
-    // Neon Overdrive: 80s synthwave with big drums, pulsing bass and a sparkling arpeggio
+    // Rainbow Skies: sunny and carefree: ukulele strums, a whistled tune, claps and sparkles; at night a starry lullaby
     7: {
-      bpm: 112, steps: 16, bars: 4, chords: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]],
+      bpm: 118, steps: 16, bars: 4, chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
+      tune: [[12, -1, 16, -1, 19, -1, 16, 14, 12, -1, -1, -1, 14, -1, 16, -1], [14, -1, 11, -1, 7, -1, 11, 14, 19, -1, -1, -1, 17, -1, 14, -1],
+        [16, -1, 12, -1, 9, -1, 12, 16, 21, -1, 19, -1, 16, -1, 12, -1], [17, -1, 16, -1, 14, -1, 12, -1, 9, -1, 12, -1, 14, -1, -1, -1]],
       light(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0 || s === 8 || s === 10) I.kick(w, B, 0.2);
-        if (s === 4 || s === 12) { noise(0.25, { vol: 0.07, freq: 1500, when: w, bus: B }); tone(190, 0.12, { vol: 0.06, to: 120, when: w, bus: B }); }
-        if (s % 2 === 0) I.hat(w, B, 0.012);
-        tone(NOTE(c[0] - 24), beat * 0.9, { type: 'sawtooth', vol: 0.05, when: w, bus: B, filter: 520 });
-        tone(NOTE(c[[0, 1, 2, 3, 2, 1, 2, 3][s % 8]] + 12), beat * 0.8, { type: 'sawtooth', vol: 0.016, when: w, bus: B, filter: 2600 });
-        if (s === 0) I.pad([c[0], c[1], c[2]], w, B, beat * 16, 0.016, 1600);
+        const c = this.chords[bar];
+        if (s === 0 || s === 8) I.kick(w, B, 0.12);
+        if (s === 4 || s === 12) for (let k = 0; k < 3; k++) noise(0.05, { vol: 0.03, freq: 2200 + k * 400, when: w + k * 0.008, bus: B });   // claps
+        if (s % 2 === 1) I.shaker(w, B, 0.012);
+        if ([0, 3, 6, 8, 10, 12, 14].includes(s)) c.forEach((n, k) => I.pluck(n + (s % 4 === 2 ? 12 : 0), w + k * 0.012, B, 0.022));   // ukulele strum
+        if (s === 0 || s === 8) I.bass(c[0] - 12, w, B, 0.1, 0.35);
+        const m = this.tune[bar][s];
+        if (m >= 0) tone(NOTE(c[0] + m), 0.22, { vol: 0.035, when: w, bus: B, attack: 0.03 });   // whistle
+        if (s === 15 && bar === 3) [84, 88, 91, 96].forEach((n, k) => I.bell(n, w + k * 0.05, B, 0.012, 0.8));   // sparkle run
       },
       dark(s, bar, w, B) {
         const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s % 4 === 0) I.kick(w, B, 0.15);
-        if (s % 2 === 0) tone(NOTE(c[(s / 2) % 4] + 12), beat * 1.6, { type: 'square', vol: 0.014, when: w, bus: B, filter: 1800 });
-        if (s === 0) I.sub(c[0] - 24, w, B, 0.12, beat * 14);
+        if (s === 0) I.softPad([c[0] - 12, c[1] - 12, c[2] - 12], w, B, beat * 16, 0.028);
+        if (s % 4 === 0) I.musicBox(c[(s / 4) % 3] + 24, w, B, 0.022);
+        if (s === 10) I.bell(c[2] + 12, w, B, 0.016, 2);
       },
-      amb: [[['zoom', 0.12]], [['zoom', 0.08], ['radio', 0.1]]],
+      amb: [[['bird', 0.25]], [['cricket', 0.4]]],
     },
     // The Monster King: heavy war drums, low brass, a dark choir and tremolo strings
     8: {

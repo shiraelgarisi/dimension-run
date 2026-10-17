@@ -167,8 +167,8 @@
     },
     {
       id: 7,
-      name: 'Neon Overdrive',
-      subtitle: 'Full speed through the city of lights',
+      name: 'Rainbow Skies',
+      subtitle: 'Run across the clouds, chase the rainbow',
       difficulty: 'Extreme',
       seed: 7759,
       length: 2450,
@@ -182,7 +182,7 @@
       chests: 4,
       instability: 0.5,
       intro: [
-        { at: 185, pattern: 'zigzag2', hint: 'Neon Overdrive: switch fast, switch often!' },
+        { at: 185, pattern: 'zigzag2', hint: 'Up in the clouds: switch fast, switch often!' },
       ],
     },
     {

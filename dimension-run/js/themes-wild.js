@@ -34,24 +34,21 @@
       weather: { color: 0xffffff, size: 0.16, vel: [0.3, -1.6, 0], sway: 1, count: 500, additive: false, opacity: 1, rainbow: true },
     },
     7: {
-      name: 'Neon Overdrive', accent: 0xff3aa8, ambient: [0xff9ae8, 0x39f3ff],
-      light: { skyTop: '#12002a', skyHor: '#ff3a9a', fog: '#2a0640', fogNear: 50, fogFar: 260, hemiSky: '#ff9ae8', hemiGround: '#3a0a5a', hemiI: 1.7, sun: '#ffb07a', sunI: 1.6, ground: '#08000f', abyss: '#000000' },
-      dark: { skyTop: '#000008', skyHor: '#004a6a', fog: '#00101e', fogNear: 35, fogFar: 200, hemiSky: '#39f3ff', hemiGround: '#00101e', hemiI: 1.4, sun: '#39f3ff', sunI: 1, ground: '#00040a', abyss: '#000000' },
-      sky: { sunDir: [0, 0.1, -1], sunCol: '#ffcf3a', sunSize: 10, synth: 1, starsL: 0.7, moonCol: '#39f3ff' },
-      floor: { tex: 'grid', glow: 'gridGlow', glowColor: 0xff3aa8, light: 0xffffff, curb: 0xff3aa8, dark: 0x39f3ff, darkTint: 0x80c0ff, darkCurb: 0x39f3ff },
-      groundGlow: [0xff3aa8, 0x39f3ff],
-      mats: { log: 0x1a1a3a, logRing: 0x39f3ff, archWood: 0x2a2a4a, flower: 0xff3aa8, flower2: 0x39f3ff, vine: 0xff3aa8, crate: 0x1a1030, crateBand: 0xff3aa8, crystal: 0x39f3ff, crystal2: 0xff3aa8, rune: 0xffcf3a, wraithRing: 0x39f3ff, gem: 0x39f3ff, spike: 0x39f3ff, obelisk: 0x0a0a1a },
-      skins: { tree: 'neonpalm', rock: 'neoncube' },
+      name: 'Rainbow Skies', accent: 0x7ac8ff, ambient: [0xffffff, 0xffe8a0], noGround: true,
+      light: { skyTop: '#3aa8ff', skyHor: '#eaf8ff', fog: '#e4f6ff', fogNear: 60, fogFar: 300, hemiSky: '#ffffff', hemiGround: '#ffd8f0', hemiI: 2.1, sun: '#fff8e0', sunI: 2.2, abyss: '#bfe8ff' },
+      dark: { skyTop: '#0a0a3a', skyHor: '#5a3a9a', fog: '#2a1a5a', fogNear: 40, fogFar: 220, hemiSky: '#d8c8ff', hemiGround: '#2a1a5a', hemiI: 1.5, sun: '#ffe8a0', sunI: 1.1, abyss: '#1a1040' },
+      sky: { sunDir: [0.35, 0.42, -1], sunCol: '#fffbe0', sunSize: 1.7, mirror: 1, moonCol: '#fff4c0', neb: 0.6, nebL: ['#ffb0e0', '#b0f0ff'], nebD: ['#b07aff', '#ff9ad8'] },
+      floor: { tex: 'cloud', light: 0xffffff, curb: 0xffffff, dark: 0xffd84a, darkTint: 0xd8d0ff, darkCurb: 0xffd84a },
+      mats: { log: 0xffb0d8, logRing: 0xffffff, archWood: 0x7ac8ff, flower: 0xffd84a, flower2: 0xff8ad0, vine: 0xffffff, crystal: 0xffd84a, crystal2: 0xb77dff, rune: 0xffffff, wraithRing: 0xffd84a, gem: 0xffe066, spike: 0xffd84a, obelisk: 0x3a2a6a },
+      skins: { rock: 'cloudpuff', tree: 'balloonbunch', crate: 'giftbox' },
       hide: { 0: [0, 1, 2, 'far'], 1: [0, 1, 2, 'far'] },
       props: [
-        { kind: 'neonpalm', world: 0, n: 22, place: 'near' }, { kind: 'neonpole', world: 0, n: 16, place: 'near' },
-        { kind: 'skyscraper', world: 0, n: 26, place: 'far' }, { kind: 'wiremountain', world: 0, n: 8, place: 'far' },
-        { kind: 'neonpole', variant: 'cyan', world: 1, n: 16, place: 'near' }, { kind: 'skyscraper', variant: 'cyan', world: 1, n: 26, place: 'far' },
-        { kind: 'wiremountain', variant: 'cyan', world: 1, n: 8, place: 'far' },
+        { kind: 'cloudProp', world: 0, n: 34, place: 'near' }, { kind: 'rainbow', world: 0, n: 6, place: 'far' }, { kind: 'hotairballoon', world: 0, n: 12, place: 'far' },
+        { kind: 'cloudProp', variant: 'night', world: 1, n: 30, place: 'near' }, { kind: 'starProp', world: 1, n: 16, place: 'far' }, { kind: 'moonSky', world: 1, place: 'sky' },
       ],
-      creatures: [{ kind: 'car', world: 0, n: 7 }, { kind: 'car', variant: 'cyan', world: 1, n: 7 }],
-      smoke: 'neonfog',
-      weather: { color: 0xff9ae8, size: 0.07, vel: [0, -20, 4], sway: 0, count: 600, additive: true, opacity: 0.8 },
+      creatures: [{ kind: 'balloon', world: 0, n: 10 }, { kind: 'parrot', world: 0, n: 6 }, { kind: 'butterfly', world: 0, n: 8 }, { kind: 'firefly', world: 1, n: 18 }, { kind: 'comet', world: 1, n: 3 }],
+      smoke: 'cotton',
+      weather: { color: 0xffffff, size: 0.22, vel: [0, 0.8, 0], sway: 1.2, count: 260, additive: false, opacity: 0.8, rainbow: true },
     },
     8: {
       name: 'Monster Lair', accent: 0xff2a2a, ambient: [0xff6a4a, 0x9aff3a], lightning: true, monsters: true,
@@ -117,6 +114,17 @@
       g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
       g.fillStyle = '#ff2a3a';
       for (let y = -W; y < H + W; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + W * 0.6); g.lineTo(W, y + W * 0.6 + 16); g.lineTo(0, y + 16); g.fill(); }
+    }),
+    cloudFloor: () => cT(256, 256, (g, S) => {
+      g.fillStyle = '#eef8ff'; g.fillRect(0, 0, S, S);
+      for (let i = 0; i < 70; i++) {   // soft fluffy bumps
+        const x = rnd() * S, y = rnd() * S, r = 14 + rnd() * 26;
+        const grd = g.createRadialGradient(x - r * 0.3, y - r * 0.3, 2, x, y, r);
+        grd.addColorStop(0, 'rgba(255,255,255,0.95)'); grd.addColorStop(1, 'rgba(190,220,255,0)');
+        g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      }
+      const bands = ['#ff5a5a', '#ffa83a', '#ffe23a', '#5ad85a', '#3aa8ff', '#9a6aff'];
+      bands.forEach((c, k) => { g.fillStyle = c; g.fillRect(k * 1.5, 0, 1.5, S); g.fillRect(S - 9 + k * 1.5, 0, 1.5, S); });
     }),
     windows: () => cT(64, 128, (g, W, H) => {
       g.fillStyle = '#0a0614'; g.fillRect(0, 0, W, H);
@@ -231,6 +239,66 @@
       const lines = new THREE.LineSegments(R(new THREE.EdgesGeometry(geo)), R(new THREE.LineBasicMaterial({ color: variant === 'cyan' ? 0x39f3ff : 0xff3aa8 })));
       lines.position.y = 0.35; lines.scale.setScalar(1.005); g.add(lines);
       g.userData.y = [-0.3, -0.3]; g.userData.s = [22, 42];
+      return g;
+    },
+    cloudProp(R, variant) {
+      const g = new THREE.Group();
+      const night = variant === 'night';
+      const mat = R.lam(night ? 0xb8a8ff : 0xffffff, { emissive: night ? 0x2a1a5a : 0x3a4a5a, flatShading: false });
+      const n = 4 + (rnd() * 4 | 0);
+      for (let i = 0; i < n; i++) {
+        const r = range(0.6, 1.2), b = R.mesh(new THREE.SphereGeometry(r, 14, 10), mat, (i - n / 2) * 0.75 + rnd() * 0.3, rnd() * 0.5, (rnd() - 0.5) * 0.8);
+        b.scale.y = 0.75; g.add(b);
+      }
+      const seed = rnd() * 10;
+      g.userData.y = [-4, 4]; g.userData.s = [0.9, 2.2];
+      g.userData.anim = (o, t) => { o.position.y = o.userData.base.y + Math.sin(t * 0.5 + seed) * 0.3; };
+      return g;
+    },
+    rainbow(R) {
+      const g = new THREE.Group();
+      [0xff4a4a, 0xff9a2a, 0xffe03a, 0x4ad84a, 0x3a9aff, 0x8a5aff].forEach((c, k) => {
+        g.add(R.mesh(new THREE.TorusGeometry(1 - k * 0.06, 0.032, 6, 48, Math.PI), R.glow(c, { transparent: true, opacity: 0.85 })));
+      });
+      for (const sx of [-1, 1]) {   // a cloud at each foot of the rainbow
+        for (let i = 0; i < 3; i++) g.add(R.mesh(new THREE.SphereGeometry(0.14, 10, 8), R.lam(0xffffff, { emissive: 0x4a5a6a }), sx * 0.85 + (i - 1) * 0.1, 0.02 + (i % 2) * 0.05, 0));
+      }
+      g.userData.y = [-6, 2]; g.userData.s = [30, 55];
+      g.userData.anim = (o) => { o.rotation.y = o.userData.face + Math.PI / 2; };
+      return g;
+    },
+    hotairballoon(R) {
+      const g = new THREE.Group();
+      const cols = [pick(CANDY), pick(CANDY)];
+      for (let k = 0; k < 8; k++) {   // striped envelope
+        const seg = R.mesh(new THREE.SphereGeometry(1, 10, 12, k / 8 * TAU, TAU / 8), R.lam(cols[k % 2], { flatShading: false, side: THREE.DoubleSide }));
+        seg.scale.set(1, 1.2, 1); g.add(seg);
+      }
+      for (const [x, z] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) g.add(R.mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 3), R.lam(0x8a6a4a), x, -1.45, z));
+      g.add(R.mesh(new THREE.BoxGeometry(0.55, 0.4, 0.55), R.lam(0xb07a3a), 0, -2.05, 0));
+      const seed = rnd() * 10;
+      g.userData.y = [8, 28]; g.userData.s = [2, 4.5]; g.userData.x = [18, 70];
+      g.userData.anim = (o, t, dt) => { o.position.y = o.userData.base.y + Math.sin(t * 0.4 + seed) * 1.2; o.rotation.y += dt * 0.1; };
+      return g;
+    },
+    starProp(R) {
+      const g = new THREE.Group();
+      const shape = new THREE.Shape();
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU + Math.PI / 2, r = i % 2 ? 0.42 : 1; i ? shape.lineTo(Math.cos(a) * r, Math.sin(a) * r) : shape.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+      const star = R.mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.25, bevelEnabled: false }), R.glow(pick([0xffe066, 0xfff4b0, 0xffd0f0])));
+      g.add(star);
+      g.add(R.mesh(new THREE.SphereGeometry(1.5, 12, 10), R.add(0xffe8a0, { opacity: 0.15 })));
+      const seed = rnd() * 10;
+      g.userData.y = [6, 26]; g.userData.s = [1.5, 3.5]; g.userData.x = [16, 70];
+      g.userData.anim = (o, t) => { star.rotation.y = Math.sin(t * 0.8 + seed) * 0.6; star.rotation.z = t * 0.2 + seed; };
+      return g;
+    },
+    moonSky(R) {
+      const g = new THREE.Group();
+      g.add(R.mesh(new THREE.SphereGeometry(1, 24, 16), R.glow(0xfff4c0)));
+      g.add(R.mesh(new THREE.SphereGeometry(0.95, 24, 16), R.glow(0x3a2a7a), 0.42, 0.18, 0.4));   // crescent: a dark disc in front
+      g.add(R.mesh(new THREE.SphereGeometry(1.5, 20, 14), R.add(0xfff4c0, { opacity: 0.12 })));
+      g.userData.offset = [-120, 85, -270]; g.userData.s = [22, 22];
       return g;
     },
     skullrock(R) {
@@ -368,6 +436,7 @@
     neonDark: lam(0x140a24), neonEdge: T(new THREE.LineBasicMaterial({ color: 0xff3aa8 })), neonPink: T(new THREE.MeshBasicMaterial({ color: 0xff3aa8 })), neonCyan: T(new THREE.MeshBasicMaterial({ color: 0x39f3ff })),
     monster: lam(0x4a1a2a), eye: T(new THREE.MeshBasicMaterial({ color: 0xfff4e0 })), pupil: T(new THREE.MeshBasicMaterial({ color: 0x111111 })),
     tooth: lam(0xf4ecd8), bone: lam(0xe8dcc0), cage: lam(0x3a3a44), glowRed: T(new THREE.MeshBasicMaterial({ color: 0xff2a2a })),
+    cloud: T(new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x3a4a5a })), ribbon: lam(0xffd84a), wrap0: lam(0xff6ab0), wrap1: lam(0x5ab8ff), wrap2: lam(0x8ad85a), wrap3: lam(0xb77dff),
   });
   D.extraSkinGeometries = () => {
     const box = new THREE.BoxGeometry(1.4, 1.4, 1.4);
@@ -382,6 +451,9 @@
       toothCone: new THREE.ConeGeometry(0.08, 0.22, 4), tusk: new THREE.ConeGeometry(0.13, 1.3, 6), skullBox: new THREE.BoxGeometry(0.7, 0.55, 0.6),
       eyeHole: new THREE.BoxGeometry(0.15, 0.13, 0.02), cageBar: new THREE.CylinderGeometry(0.035, 0.035, 2.1, 6),
       cageRing: new THREE.TorusGeometry(0.72, 0.05, 6, 20).rotateX(Math.PI / 2), redEye: new THREE.SphereGeometry(0.08, 8, 8),
+      cloudBall: new THREE.SphereGeometry(0.6, 14, 10), balloonBall: new THREE.SphereGeometry(0.38, 14, 10), string: new THREE.CylinderGeometry(0.012, 0.012, 1.5, 3),
+      weight: new THREE.BoxGeometry(0.3, 0.25, 0.3), present: new THREE.BoxGeometry(1.3, 0.9, 1.0), present2: new THREE.BoxGeometry(0.9, 0.7, 0.8),
+      ribbonA: new THREE.BoxGeometry(0.16, 0.94, 1.04), ribbonB: new THREE.BoxGeometry(1.34, 0.94, 0.16), bowLoop: new THREE.TorusGeometry(0.16, 0.05, 6, 12),
     };
   };
   Object.assign(D.SKINS, {
@@ -431,6 +503,29 @@
       for (let i = 0; i < 3; i++) { const t = add(G.tusk, S.bone, (i - 1) * 0.35, 1.2, 0); t.scale.set(1.2, 1.8, 1.2); t.rotation.z = (i - 1) * 0.3; }
       add(G.skullBox, S.bone, 0, 0.32, 0.1);
       for (const sx of [-1, 1]) add(G.eyeHole, S.pupil, sx * 0.15, 0.38, 0.41);
+      return null;
+    },
+    cloudpuff(g, S, G, add) {
+      for (const [x, y, z, k] of [[0, 0.6, 0, 1.3], [-0.55, 0.5, 0.1, 1], [0.55, 0.5, -0.05, 1.05], [0, 1.35, 0.05, 1.05], [-0.3, 1.1, 0.25, 0.8], [0.35, 1.2, 0.2, 0.85]]) {
+        const b = add(G.cloudBall, S.cloud, x, y, z); b.scale.setScalar(k);
+      }
+      return null;
+    },
+    balloonbunch(g, S, G, add) {
+      add(G.weight, S.ribbon, 0, 0.12, 0);
+      const balloons = [];
+      [[0, 2.6, 0], [-0.45, 2.3, 0.1], [0.45, 2.35, -0.1], [-0.2, 2.95, -0.15], [0.25, 2.9, 0.15]].forEach(([x, y, z], i) => {
+        const s = add(G.string, S.stick, x / 2, y / 2 + 0.25, z / 2); s.rotation.z = -x * 0.35;
+        const b = add(G.balloonBall, S['wrap' + (i % 4)], x, y, z); b.scale.y = 1.2; balloons.push(b);
+      });
+      const seed = rnd() * 10;
+      return t => { balloons.forEach((b, i) => { b.position.y += Math.sin(t * 2 + seed + i) * 0.002; }); };
+    },
+    giftbox(g, S, G, add) {
+      const w = 'wrap' + ((rnd() * 4) | 0), w2 = 'wrap' + ((rnd() * 4) | 0);
+      add(G.present, S[w], 0, 0.45, 0); add(G.ribbonA, S.ribbon, 0, 0.45, 0); add(G.ribbonB, S.ribbon, 0, 0.45, 0);
+      add(G.present2, S[w2], 0.05, 1.25, 0); add(G.ribbonA, S.ribbon, 0.05, 1.25, 0).scale.set(1, 0.75, 0.8);
+      for (const sx of [-1, 1]) { const l = add(G.bowLoop, S.ribbon, 0.05 + sx * 0.16, 1.7, 0); l.rotation.y = Math.PI / 2; }
       return null;
     },
     cage(g, S, G, add) {
