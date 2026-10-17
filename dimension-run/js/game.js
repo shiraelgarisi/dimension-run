@@ -52,8 +52,8 @@
     UI.renderMenu(save, nextLevelToPlay());
     UI.show('menu');
     Sound.setIntensity(0);
-    Sound.musicStart(100);
-    Sound.setTempo(100);
+    Sound.setSong('menu');
+    Sound.musicStart();
   }
 
   function showWardrobe() {
@@ -86,7 +86,7 @@
     UI.hud(true);
     setMode('countdown');
     countdownStep = -1;
-    Sound.musicStart(108 + level * 8);
+    Sound.musicStart();
   }
 
   function showLevels() {
@@ -116,8 +116,8 @@
     UI.startLevel(track.cfg, save.best(n));
     UI.vignette(false);
     Sound.setIntensity(0);
-    Sound.musicStart(108 + n * 8);
-    Sound.setTempo(108 + n * 8);
+    Sound.setSong(n);
+    Sound.musicStart();
     UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small><small class="theme">${world.themeName.toUpperCase()}</small>`, '', 1100);
     UI.flash('w');
   }
@@ -133,7 +133,7 @@
     if (mode !== 'paused') return;
     mode = pausedFrom;
     UI.show(null);
-    Sound.musicStart(108 + level * 8);
+    Sound.musicStart();
   }
 
   function toggleMute() {
@@ -346,8 +346,7 @@
   function setWarpClass(kind) {
     document.body.classList.toggle('warp-fast', kind === 'fast');
     document.body.classList.toggle('warp-slow', kind === 'slow');
-    const base = 108 + level * 8;
-    Sound.setTempo(kind === 'fast' ? base * 1.4 : kind === 'slow' ? base * 0.65 : base);
+    Sound.setTempoScale(kind === 'fast' ? 1.35 : kind === 'slow' ? 0.7 : 1);
   }
 
   // ------------------------------------------------------------------
@@ -393,7 +392,7 @@
           UI.banner('FINAL ESCAPE!<small>THE DIMENSIONS ARE COLLAPSING · RUN!</small>', 'danger', 2200);
           UI.vignette(true);
           Sound.setIntensity(1);
-          Sound.setTempo(160);
+          Sound.setTempoScale(1.2);
         }
         if (finaleShown) {
           debrisT -= dt;
@@ -489,6 +488,8 @@
     }
     save.write();
   }
+  world.onThunder = () => Sound.thunder();
+  world.onBoom = () => { if (Math.random() < 0.4) Sound.boom(); };   // not every meteor: it would get noisy
   world.applyOutfit(save.data.equipped);
   toMenu();
   if (params.has('level')) {

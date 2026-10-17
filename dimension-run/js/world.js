@@ -1399,6 +1399,7 @@
         if (this.lightningT <= 0) {
           this.flashV = 1;
           this._bolt(x, z);
+          if (this.onThunder && this.flashV === 1 && this.lightningT !== 0.15) this.onThunder();
           this.lightningT = rnd() < 0.3 ? 0.15 : 2.5 + rnd() * 4;   // sometimes a double strike
         }
       }
@@ -1572,6 +1573,7 @@
           if (!hit && u > 0.87) {
             hit = true;
             mesh.visible = false;
+            if (this.onBoom) this.onBoom();
             this.burst(to, 0xff7a1a, 18, { speed: 14, up: 6, grav: 10, life: 1.2, size: 4 });
             this.burst(to, 0xffe0a0, 8, { speed: 6, up: 2, grav: 0, life: 0.5, size: 8 });
           }
