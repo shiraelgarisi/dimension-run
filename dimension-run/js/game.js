@@ -63,6 +63,16 @@
     });
     render();
     UI.show('wardrobe');
+    // dressing up happens in the Light World; the button flips it only when you ask
+    if (sim.dim.world !== C.LIGHT) { sim.dim.forceFlip(); world.switchFx(sim.dim.world); }
+    UI.wardrobeWorld(sim.dim.world);
+  }
+
+  function toggleWardrobeWorld() {
+    sim.dim.forceFlip();
+    world.switchFx(sim.dim.world);
+    Sound.switchTo(sim.dim.world);
+    UI.wardrobeWorld(sim.dim.world);
   }
 
   function showShop() {
@@ -156,6 +166,7 @@
     shop: showShop,
     continueRun,
     wardrobe: showWardrobe,
+    wardrobeWorld: toggleWardrobeWorld,
     exit: exitGame,
     menu: toMenu,
     resetProgress: () => { save.reset(); showLevels(); UI.renderMenu(save, 1); },
@@ -356,8 +367,8 @@
     modeT += dt;
     switch (mode) {
       case 'menu': {
-        // the title screen shows off both worlds
-        menuSwitchT += dt;
+        // the title screen shows off both worlds (but not while you are dressing up)
+        menuSwitchT = wardrobeOpen ? 0 : menuSwitchT + dt;
         if (menuSwitchT > 4) { menuSwitchT = 0; sim.dim.trySwitch(); world.switchFx(sim.dim.world); }
         sim.dim.update(dt);
         break;

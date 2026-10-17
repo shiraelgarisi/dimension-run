@@ -19,6 +19,7 @@
       on('shopBack', h.menu);
       $('continueBtn').addEventListener('click', () => h.continueRun());
       on('wardrobeBack', h.menu);
+      on('wardrobeWorld', h.wardrobeWorld);
       on('exitBtn', h.exit);
       on('levelsBack', h.menu);
       on('resetBtn', () => { if (window.confirm('Reset all progress and best scores?')) h.resetProgress(); });
@@ -103,6 +104,11 @@
         row.appendChild(b);
         box.appendChild(row);
       }
+    },
+
+    /** Label of the wardrobe's world button: it offers the other world. */
+    wardrobeWorld(world) {
+      $('wardrobeWorld').innerHTML = world === DR.CONST.LIGHT ? '☾ See it in the Dark World' : '☀ Back to the Light World';
     },
 
     renderWardrobe(save, equip) {

@@ -264,3 +264,4 @@ h2 { letter-spacing: 2px; }
 #banner small { font-family: 'Fredoka', system-ui, sans-serif; font-weight: 600; }
 #hint { font-weight: 600; letter-spacing: 0.3px; }
 button { font-weight: 600; }
+button.world-toggle { width: auto; margin: 6px auto 0; padding: 8px 14px; font-size: 13px; }
