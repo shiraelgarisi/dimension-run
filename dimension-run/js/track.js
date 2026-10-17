@@ -376,7 +376,9 @@
 
     const coins = placeCoins(r, cfg, rows, plan);
     const shards = placeShards(r, cfg, rows, plan);
-    return { cfg, rows, plan, coins, shards, length: cfg.length, finaleD: cfg.finale ? finaleD : null, speedAt: d => speedAt(cfg, d) };
+    const chests = placeChests(r, cfg, rows, plan, shards);
+    const pads = placePads(r, cfg, rows, chests);
+    return { cfg, rows, plan, coins, shards, chests, pads, length: cfg.length, finaleD: cfg.finale ? finaleD : null, speedAt: d => speedAt(cfg, d) };
   }
 
   function gapsBetweenRows(rows) {
@@ -421,6 +423,33 @@
       out.push({ d: (g.a + g.b) / 2, lane: r.pick(except(p.lane + 1)) - 1, world: 1 - p.world, y: 1.2 });
     }
     return out.sort((a, b) => a.d - b.d);
+  }
+
+  // Treasure chests: hidden off the planned path (another lane, sometimes the other world).
+  function placeChests(r, cfg, rows, plan, shards) {
+    const out = [];
+    const used = d => shards.some(s => Math.abs(s.d - d) < 12);
+    const gaps = r.shuffle(gapsBetweenRows(rows).filter(g => g.i > 3 && !used((g.a + g.b) / 2)));
+    for (const g of gaps.slice(0, cfg.chests || 0)) {
+      const p = plan[g.i];
+      const otherWorld = r.chance(0.4);
+      const lane = otherWorld ? r.int(-1, 1) : r.pick(except(p.lane + 1)) - 1;
+      out.push({ d: (g.a + g.b) / 2, lane, world: otherWorld ? 1 - p.world : p.world });
+    }
+    return out.sort((a, b) => a.d - b.d);
+  }
+
+  // Time pads lie on the floor in free stretches and work in both worlds.
+  function placePads(r, cfg, rows, chests) {
+    const out = [];
+    if (!cfg.timePads) return out;
+    for (const g of gapsBetweenRows(rows)) {
+      if (g.i < 2 || !r.chance(cfg.timePads)) continue;
+      const d = g.a + (g.b - g.a) * r.range(0.3, 0.7);
+      if (chests.some(c => Math.abs(c.d - d) < 6)) continue;
+      out.push({ d, lane: r.int(-1, 1), kind: r.chance(0.55) ? 'fast' : 'slow' });
+    }
+    return out;
   }
 
   DR.track = { generate, speedAt, timeBetween, advance, PATTERNS, NEED, isVertical };

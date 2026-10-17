@@ -4,7 +4,7 @@
   'use strict';
   const DR = window.DR;
   const $ = id => document.getElementById(id);
-  const SCREENS = ['menu', 'levels', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const SCREENS = ['menu', 'levels', 'wardrobe', 'pause', 'over', 'complete', 'victory', 'exit'];
   const RING = 2 * Math.PI * 28;
 
   let hintText = '', bannerTimer = null, lastHud = {};
@@ -14,6 +14,8 @@
       const on = (id, fn) => $(id).addEventListener('click', () => { DR.Sound.click(); fn(); });
       on('startBtn', h.start);
       on('levelsBtn', h.levels);
+      on('wardrobeBtn', h.wardrobe);
+      on('wardrobeBack', h.menu);
       on('exitBtn', h.exit);
       on('levelsBack', h.menu);
       on('resetBtn', () => { if (window.confirm('Reset all progress and best scores?')) h.resetProgress(); });
@@ -55,6 +57,8 @@
 
     renderMenu(save, next) {
       const cfg = DR.LEVELS[next - 1];
+      const total = Object.values(DR.COSMETICS).reduce((n, l) => n + l.length, 0);
+      $('wardrobeCount').textContent = `${save.data.owned.length} / ${total}`;
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('menuBest').textContent = save.bestTotal();
     },
@@ -79,12 +83,36 @@
       }
     },
 
+    renderWardrobe(save, equip) {
+      const box = $('wardrobeSlots');
+      box.innerHTML = '';
+      for (const slot in DR.COSMETICS) {
+        const h = document.createElement('h3');
+        h.textContent = DR.COSMETIC_SLOTS[slot];
+        box.appendChild(h);
+        const row = document.createElement('div');
+        row.className = 'items';
+        for (const item of DR.COSMETICS[slot]) {
+          const owned = save.owns(slot, item.id), on = save.data.equipped[slot] === item.id;
+          const b = document.createElement('button');
+          b.className = 'item' + (owned ? '' : ' locked') + (on ? ' on' : '');
+          b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>`;
+          b.title = owned ? item.name : 'Find it in a treasure chest';
+          b.addEventListener('click', () => { if (owned) { DR.Sound.click(); equip(slot, item.id); } else DR.Sound.denied(); });
+          row.appendChild(b);
+        }
+        box.appendChild(row);
+      }
+      const total = Object.values(DR.COSMETICS).reduce((n, l) => n + l.length, 0);
+      $('wardrobeFound').textContent = `Found ${save.data.owned.length} of ${total} items. Treasure chests hide the rest!`;
+    },
+
     startLevel(cfg, best) {
       $('levelName').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('hudBest').textContent = best;
       $('shards').classList.add('hidden');
       lastHud = {};
-      $('dimState').innerHTML = '<kbd>SPACE</kbd> switch';
+      $('dimState').innerHTML = `<kbd>${this.switchKey}</kbd> switch`;
     },
 
     updateHud(s) {
@@ -107,12 +135,19 @@
         lastHud.ready = r;
         $('dimRing').style.strokeDashoffset = String(RING * (1 - r));
         $('dimension').classList.toggle('charging', r < 1);
-        if (s.cooldownOn) $('dimState').innerHTML = r < 1 ? 'recharging…' : '<kbd>SPACE</kbd> ready';
+        if (s.cooldownOn) $('dimState').innerHTML = r < 1 ? 'recharging…' : `<kbd>${this.switchKey}</kbd> ready`;
       }
     },
     denied() {
       const d = $('dimension');
       d.classList.remove('denied'); void d.offsetWidth; d.classList.add('denied');
+    },
+
+    switchKey: 'SPACE',
+    setTouch(on) {
+      this.touch = on;
+      this.switchKey = on ? 'TAP' : 'SPACE';
+      document.body.classList.toggle('touch', on);
     },
 
     hint(text) {

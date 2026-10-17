@@ -121,6 +121,14 @@
       if (world === 1) { tone(1046, 0.12, { type: 'sine', vol: 0.06 }); tone(1568, 0.18, { type: 'sine', vol: 0.05, at: 0.05 }); }
       else { tone(1320, 0.07, { type: 'square', vol: 0.035 }); tone(1980, 0.12, { type: 'square', vol: 0.035, at: 0.05 }); }
     },
+    chest() {
+      [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.1, at: i * 0.06 }));
+      noise(0.4, { vol: 0.12, freq: 5000, type: 'highpass', at: 0.1 });
+    },
+    warp(kind) {
+      if (kind === 'fast') { tone(220, 0.4, { type: 'sawtooth', vol: 0.08, to: 1760, filter: 4000 }); noise(0.3, { vol: 0.1, freq: 800, sweep: 8000 }); }
+      else { tone(880, 0.6, { type: 'triangle', vol: 0.1, to: 110 }); [0, 0.25, 0.5].forEach(at => tone(1800, 0.04, { type: 'square', vol: 0.05, at })); }
+    },
     shard() { [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.08, at: i * 0.05 })); },
     bounce() { tone(160, 0.2, { type: 'sawtooth', vol: 0.12, to: 80, filter: 900 }); noise(0.15, { vol: 0.15, freq: 400 }); },
     crash() { tone(220, 0.7, { type: 'sawtooth', vol: 0.18, to: 40, filter: 1200 }); noise(0.5, { vol: 0.3, freq: 300, type: 'lowpass' }); },

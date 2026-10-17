@@ -12,6 +12,7 @@
 * { box-sizing: border-box; }
 html, body {
   margin: 0; height: 100%; overflow: hidden; background: #0c0618; color: var(--text);
+  touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
   font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, Roboto, sans-serif;
   user-select: none; -webkit-user-select: none;
 }
@@ -176,4 +177,65 @@ button.small { font-size: 12px; padding: 8px; }
   #score { font-size: 26px; }
   .hud-center { top: 70px; width: 80vw; }
   #hint { font-size: 15px; white-space: normal; width: 90vw; text-align: center; }
+}
+
+/* ---------- per-level accent (body[data-level]) ---------- */
+body { --accent: #b04dff; --accent-2: #ffcf3a; }
+body[data-level="1"] { --accent: #b04dff; --accent-2: #ffd84a; }
+body[data-level="2"] { --accent: #ff3a5a; --accent-2: #ff8a3a; }
+body[data-level="3"] { --accent: #39d8ff; --accent-2: #e8f4ff; }
+body[data-level="4"] { --accent: #ff4dd2; --accent-2: #9aff3a; }
+body[data-level="5"] { --accent: #ff5a2a; --accent-2: #ffcf3a; }
+#banner { text-shadow: 0 0 20px var(--accent), 0 4px 10px rgba(0, 0, 0, 0.7); }
+#banner small.theme { color: var(--accent-2); font-size: 0.24em; letter-spacing: 8px; margin-top: 10px; }
+#banner.milestone { top: 20%; font-size: clamp(30px, 5vw, 54px); color: var(--accent-2); animation: pop 0.35s ease-out, rise 0.8s ease-in forwards; }
+@keyframes rise { 70% { opacity: 1; } to { opacity: 0; transform: translateY(-30px); } }
+#levelName { color: var(--accent-2); }
+#progressFill { background: linear-gradient(90deg, var(--accent-2), var(--accent)); box-shadow: 0 0 10px var(--accent); }
+
+/* ---------- wardrobe ---------- */
+.screen.side { justify-content: flex-end; background: linear-gradient(90deg, transparent 40%, rgba(10, 4, 24, 0.55)); }
+.wardrobe-panel { width: min(430px, 100%); max-height: 96vh; }
+.wardrobe-panel h3 { margin: 14px 0 6px; font-size: 13px; letter-spacing: 3px; color: var(--muted); text-align: left; }
+.items { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+button.item { margin: 0; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; letter-spacing: 0; line-height: 1.1; }
+button.item .ico { font-size: 24px; }
+button.item .nm { font-size: 10px; font-weight: 600; }
+button.item.on { border-color: var(--light); background: rgba(255, 207, 58, 0.18); box-shadow: 0 0 12px rgba(255, 207, 58, 0.4); }
+button.item.locked { opacity: 0.4; cursor: not-allowed; }
+#wardrobeBtn small { font-size: 12px; opacity: 0.7; margin-left: 6px; }
+@media (max-width: 720px) { .screen.side { align-items: flex-end; background: linear-gradient(180deg, transparent 35%, rgba(10, 4, 24, 0.6)); } .wardrobe-panel { max-height: 60vh; } }
+
+/* ---------- treasure & time warp ---------- */
+#banner.treasure { color: #ffe066; text-shadow: 0 0 24px rgba(255, 200, 40, 0.9), 0 4px 10px rgba(0, 0, 0, 0.7); }
+body.warp-fast #game { filter: saturate(1.5) contrast(1.1) hue-rotate(-10deg); }
+body.warp-slow #game { filter: sepia(0.55) saturate(0.8) brightness(1.05); }
+body.warp-fast #vignette, body.warp-slow #vignette { opacity: 1; }
+body.warp-fast #vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(58, 255, 192, 0.35) 100%); }
+body.warp-slow #vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(200, 106, 255, 0.4) 100%); }
+#game { transition: filter 0.3s; }
+
+/* ---------- touch / phones ---------- */
+.touch-controls { display: none; }
+body.touch .touch-controls { display: grid; }
+body.touch .key-controls, body.touch .key-only { display: none; }
+body.touch #dimension { pointer-events: auto; cursor: pointer; bottom: calc(18px + env(safe-area-inset-bottom)); }
+.screen { overflow-y: auto; touch-action: pan-y; }
+.hud-left { top: calc(14px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); }
+.hud-right { top: calc(14px + env(safe-area-inset-top)); right: calc(18px + env(safe-area-inset-right)); }
+@media (max-width: 720px) {
+  .panel { padding: 20px 16px; }
+  .logo { font-size: clamp(34px, 12vw, 52px); }
+  .hud-buttons button { width: 44px; height: 44px; }
+  #dimension { padding: 6px 14px 6px 6px; gap: 8px; }
+  .dim-orb { width: 46px; height: 46px; }
+  #dimName { font-size: 12px; }
+  #banner { font-size: clamp(28px, 10vw, 48px); }
+  .stats b { font-size: 18px; }
+  .items { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .hud-center { top: 10px; width: 40vw; }
+  #hint { top: 22%; font-size: 14px; }
+  .panel { max-height: 94vh; }
 }

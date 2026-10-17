@@ -230,6 +230,50 @@ test('coins and shards can be collected on the planned path', () => {
   const sim = play(tracks[0], 0, 1);
   assert(sim.scoring.coins > 10, 'coins ' + sim.scoring.coins);
 });
+test('every level hides treasure chests between rows', () => {
+  for (const tr of tracks) {
+    assert(tr.chests.length === tr.cfg.chests, `L${tr.cfg.id} chests ${tr.chests.length}`);
+    for (const c of tr.chests) {
+      const i = tr.rows.findIndex(r => r.d > c.d);
+      assert(i > 0 && tr.rows[i - 1].d < c.d, 'chest sits between rows');
+    }
+  }
+});
+test('a chest is collected when you run through it', () => {
+  const tr = tracks[0], c = tr.chests[0];
+  const sim = new DR.Sim(tr);
+  sim.player.d = c.d - 3; sim.player.lane = sim.player.fromLane = c.lane; sim.player.lat = c.lane * C.LANE_W;
+  if (c.world !== sim.dim.world) sim.dim.forceFlip();
+  sim.rowCursor = tr.rows.findIndex(r => r.d > c.d - 3);
+  for (let k = 0; k < 60; k++) sim.step(1 / 120);
+  assert(sim.events.some(e => e.type === 'chest') && sim.scoring.chests === 1);
+});
+test('time pads: Time Pressure has both kinds; running over one warps time', () => {
+  const tr = tracks[2];
+  assert(tr.pads.some(p => p.kind === 'fast') && tr.pads.some(p => p.kind === 'slow'), 'both kinds');
+  assert(tracks[0].pads.length === 0, 'L1 has none');
+  const p = tr.pads.find(x => x.kind === 'slow');
+  const sim = new DR.Sim(tr);
+  sim.player.d = p.d - 2; sim.player.lane = sim.player.fromLane = p.lane; sim.player.lat = p.lane * C.LANE_W;
+  sim.rowCursor = tr.rows.findIndex(r => r.d > p.d - 2);
+  sim.padCursor = tr.pads.indexOf(p);
+  for (let k = 0; k < 40; k++) sim.step(1 / 120);
+  assert(sim.timeScale === DR.TIME_PADS.slow.scale, 'scale ' + sim.timeScale);
+  for (let k = 0; k < 120 * 3; k++) sim.step(1 / 120);
+  assert(sim.state !== 'running' || sim.timeScale === 1 || sim.warp.kind, 'warp ends');
+});
+test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
+  DR.save.reset();
+  DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));
+  assert(DR.save.owns('hat', 'none') && !DR.save.owns('hat', 'crown'));
+  assert(!DR.save.equip('hat', 'crown'), 'cannot wear what you do not own');
+  const got = DR.save.unlockRandom(() => 0);
+  assert(got && DR.save.owns(got.slot, got.item.id) && DR.save.equip(got.slot, got.item.id));
+  memStore['dimensionRun.save'] = JSON.stringify({ unlocked: 1, owned: ['hat:crown', 'hat:bogus', 7], equipped: { hat: 'crown', back: 'wings' } });
+  DR.save.load();
+  assert(DR.save.owns('hat', 'crown') && !DR.save.owns('hat', 'bogus'), 'owned sanitised');
+  assert(DR.save.data.equipped.hat === 'crown' && DR.save.data.equipped.back === 'backpack', 'equipped sanitised');
+});
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

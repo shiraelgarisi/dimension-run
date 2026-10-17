@@ -18,7 +18,8 @@
   // mode: menu | countdown | play | paused | dead | finish | victory | result
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
-  let countdownStep = -1, finaleShown = false, glitchT = 4, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
+  let wardrobeOpen = false, padHints = {};
+  let countdownStep = -1, milestone = 0, finaleShown = false, glitchT = 4, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
 
   function setMode(m) { mode = m; modeT = 0; if (m !== 'paused' && m !== 'result') viewMode = m; }
 
@@ -42,13 +43,25 @@
     loadLevel(1);
     setMode('menu');
     victoryFx = false;
+    wardrobeOpen = false;
+    setWarpClass(null);
     UI.hud(false);
     UI.vignette(false);
+    document.body.dataset.level = '1';
     UI.renderMenu(save, nextLevelToPlay());
     UI.show('menu');
     Sound.setIntensity(0);
     Sound.musicStart(100);
     Sound.setTempo(100);
+  }
+
+  function showWardrobe() {
+    wardrobeOpen = true;
+    const render = () => UI.renderWardrobe(save, (slot, id) => {
+      if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
+    });
+    render();
+    UI.show('wardrobe');
   }
 
   function showLevels() {
@@ -63,7 +76,11 @@
     bot = AUTOPILOT ? new DR.Autopilot(track) : null;
     setMode('countdown');
     countdownStep = -1;
+    milestone = 0;
+    padHints = {};
+    setWarpClass(null);
     finaleShown = false;
+    document.body.dataset.level = String(n);
     victoryFx = false;
     glitchT = 3 + Math.random() * 3;
     UI.show(null);
@@ -73,7 +90,8 @@
     Sound.setIntensity(0);
     Sound.musicStart(108 + n * 8);
     Sound.setTempo(108 + n * 8);
-    UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small>`, '', 1100);
+    UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small><small class="theme">${world.themeName.toUpperCase()}</small>`, '', 1100);
+    UI.flash('w');
   }
 
   function pause() {
@@ -107,6 +125,7 @@
   UI.init({
     start: () => startLevel(nextLevelToPlay()),
     levels: showLevels,
+    wardrobe: showWardrobe,
     exit: exitGame,
     menu: toMenu,
     resetProgress: () => { save.reset(); showLevels(); UI.renderMenu(save, 1); },
@@ -145,9 +164,58 @@
     // menus: arrows move focus, Enter/Space press the focused button (native behaviour)
     if (k === 'ArrowDown' || k === 'ArrowRight') { e.preventDefault(); UI.navigate(1); }
     else if (k === 'ArrowUp' || k === 'ArrowLeft') { e.preventDefault(); UI.navigate(-1); }
-    else if (k === 'Escape' && (UI.current === 'levels' || UI.current === 'exit')) toMenu();
+    else if (k === 'Escape' && (UI.current === 'levels' || UI.current === 'exit' || UI.current === 'wardrobe')) toMenu();
   });
   window.addEventListener('pointerdown', () => Sound.init());
+
+  // ------------------------------------------------------------------
+  // touch: swipe to move / jump / slide, tap to switch worlds
+  // ------------------------------------------------------------------
+  const SWIPE = 28;          // px of finger travel that counts as a swipe
+  const TAP_MS = 260;        // a shorter touch without travel is a tap
+  let touch = null;
+  function useTouch() {
+    if (UI.touch) return;
+    UI.setTouch(true);
+  }
+  if (window.matchMedia && matchMedia('(pointer: coarse)').matches) useTouch();
+  const inGame = () => mode === 'play' || mode === 'countdown';
+  const onControl = e => e.target.closest && e.target.closest('button, .screen, #dimension');
+  window.addEventListener('touchstart', e => {
+    useTouch();
+    Sound.init();
+    if (!inGame() || onControl(e)) return;
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    touch = { id: t.identifier, x: t.clientX, y: t.clientY, t: performance.now(), done: false };
+  }, { passive: false });
+  window.addEventListener('touchmove', e => {
+    if (!touch || !inGame()) return;
+    e.preventDefault();
+    const t = [...e.changedTouches].find(c => c.identifier === touch.id);
+    if (!t || touch.done) return;
+    const dx = t.clientX - touch.x, dy = t.clientY - touch.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE) return;
+    touch.done = true;   // act as soon as the swipe is clear: no waiting for the finger to lift
+    if (mode !== 'play' || bot) return;
+    if (Math.abs(dx) > Math.abs(dy)) (dx < 0 ? sim.left() : sim.right());
+    else (dy < 0 ? sim.jump() : sim.slide());
+  }, { passive: false });
+  window.addEventListener('touchend', e => {
+    if (!touch) return;
+    const t = [...e.changedTouches].find(c => c.identifier === touch.id);
+    if (!t) return;
+    const tap = !touch.done && performance.now() - touch.t < TAP_MS;
+    touch = null;
+    if (inGame()) e.preventDefault();
+    if (tap && mode === 'play' && !bot) sim.switchWorld();
+  }, { passive: false });
+  window.addEventListener('touchcancel', () => { touch = null; });
+  // the world orb is a button too
+  document.getElementById('dimension').addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    if (mode === 'play' && !bot) sim.switchWorld();
+  });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('blur', () => pause());
 
@@ -166,9 +234,22 @@
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
         case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index); break;
         case 'shard': Sound.shard(); world.hideShard(e.index); UI.banner('✦ +250<small>DIMENSION SHARD</small>', '', 900); break;
+        case 'chest': {
+          Sound.chest(); world.openChest(e.index); UI.flash('w');
+          const got = save.unlockRandom();
+          if (got) UI.banner(`TREASURE!<small>NEW ${got.slot.toUpperCase()}: ${got.item.icon} ${got.item.name.toUpperCase()}</small><small class="theme">WEAR IT IN THE WARDROBE</small>`, 'treasure', 2200);
+          else UI.banner('TREASURE!<small>+300 POINTS</small>', 'treasure', 1400);
+          break;
+        }
+        case 'pad':
+          Sound.warp(e.kind); world.padFx(e.index, e.kind); setWarpClass(e.kind);
+          UI.banner(e.kind === 'fast' ? '⏩ TIME RUSH<small>×2 POINTS</small>' : '⏪ TIME SLOWED', 'milestone', 900);
+          break;
+        case 'warpEnd': setWarpClass(null); break;
         case 'bounce': Sound.bounce(); world.bounceFx(); UI.flash('r'); break;
         case 'death':
           if (e.kind === 'gap') Sound.fall(); else Sound.crash();
+          setWarpClass(null);
           world.crashFx(e.kind);
           UI.flash('r');
           Sound.musicStop();
@@ -198,14 +279,44 @@
     return (DEATH[k] || DEATH.block)[w];
   }
 
+  // keyboard hints, reworded for phones
+  function touchHint(h) {
+    return h.replace('Dodge with ← → (or A / D)', 'Swipe left / right to dodge')
+      .replace('Jump with ↑ (or W)', 'Swipe up to jump')
+      .replace('Slide with ↓ (or S)', 'Swipe down to slide')
+      .replace('Press SPACE', 'Tap')
+      .replace('SPACE again', 'Tap again');
+  }
+
   function currentHint() {
     const P = sim.player, rows = track.rows;
     for (let i = sim.rowCursor; i < rows.length; i++) {
       const r = rows[i];
       if (r.d - P.d > sim.speed * 3) break;
-      if (r.hint && r.d + r.depth / 2 > P.d) return r.hint;
+      if (r.hint && r.d + r.depth / 2 > P.d) return UI.touch ? touchHint(r.hint) : r.hint;
     }
     return '';
+  }
+
+  // the first time each kind of time pad comes up, explain it
+  function padHint() {
+    const P = sim.player;
+    for (const p of track.pads || []) {
+      if (p.d < P.d) continue;
+      if (p.d - P.d > sim.speed * 2.5) break;
+      if (!padHints[p.kind] || padHints[p.kind] === p) {
+        padHints[p.kind] = p;
+        return p.kind === 'fast' ? 'Green pads speed up time: double points!' : 'Purple pads slow time down';
+      }
+    }
+    return '';
+  }
+
+  function setWarpClass(kind) {
+    document.body.classList.toggle('warp-fast', kind === 'fast');
+    document.body.classList.toggle('warp-slow', kind === 'slow');
+    const base = 108 + level * 8;
+    Sound.setTempo(kind === 'fast' ? base * 1.4 : kind === 'slow' ? base * 0.65 : base);
   }
 
   // ------------------------------------------------------------------
@@ -234,10 +345,17 @@
         break;
       }
       case 'play': {
-        sim.update(dt, bot ? s => bot.tick(s) : null);
+        sim.update(dt * sim.timeScale, bot ? s => bot.tick(s) : null);
         handleEvents();
         if (mode !== 'play') break;
-        UI.hint(currentHint());
+        UI.hint(currentHint() || padHint());
+        // progress milestones: shockwave + callout at 25 / 50 / 75 %
+        if (milestone < 3 && sim.progress >= (milestone + 1) * 0.25) {
+          milestone++;
+          world.milestoneFx();
+          Sound.ready();
+          if (!finaleShown) UI.banner(`${milestone * 25}%<small>${['KEEP GOING', 'HALFWAY THERE', 'ALMOST OUT'][milestone - 1]}</small>`, 'milestone', 800);
+        }
         // final escape
         if (track.finaleD && sim.player.d > track.finaleD && !finaleShown) {
           finaleShown = true;
@@ -318,7 +436,7 @@
       });
     }
     world.update(mode === 'paused' ? 0 : dt, {
-      sim, mode: viewMode, modeT: viewMode === mode ? modeT : 99,
+      sim, mode: viewMode, modeT: viewMode === mode ? modeT : 99, wardrobe: wardrobeOpen && UI.current === 'wardrobe',
       instability: mode === 'menu' ? 0 : track.cfg.instability, danger: finaleShown && mode !== 'menu' ? 1 : 0,
     });
     world.render();
@@ -327,6 +445,7 @@
   // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
+  world.applyOutfit(save.data.equipped);
   toMenu();
   if (params.has('level')) {
     const n = U.clamp(parseInt(params.get('level'), 10) || 1, 1, DR.LEVELS.length);

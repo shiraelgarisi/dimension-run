@@ -32,6 +32,10 @@
       this.coinTaken = new Uint8Array(this.track.coins.length);
       this.shardTaken = new Uint8Array(this.track.shards.length);
       this.riftDone = new Set();
+      this.chestTaken = new Uint8Array((this.track.chests || []).length);
+      this.padCursor = 0;
+      this.padTaken = new Uint8Array((this.track.pads || []).length);
+      this.warp = null;            // active time pad: { kind, t }
       this.stumbleT = 0;
       this.events = [];
       this.acc = 0;
@@ -40,6 +44,8 @@
     get speed() { return this.track.speedAt(this.player.d); }
     get progress() { return Math.min(1, this.player.d / this.track.length); }
     get world() { return this.dim.world; }
+    /** How fast time flows (time pads). The game multiplies its frame time by this. */
+    get timeScale() { return this.warp && this.state === 'running' ? DR.TIME_PADS[this.warp.kind].scale : 1; }
 
     // ----- input -----
     left() { return this._act(() => this.player.move(-1), 'move'); }
@@ -87,7 +93,9 @@
       const speed = this.speed;
       if (this.dim.update(dt)) this.events.push({ type: 'ready' });
       for (const e of P.update(dt, speed)) this.events.push({ type: e });
-      this.scoring.addDistance(speed * dt);
+      const warpCfg = this.warp && DR.TIME_PADS[this.warp.kind];
+      this.scoring.addDistance(speed * dt * (warpCfg ? warpCfg.pointsMult : 1));
+      if (this.warp && (this.warp.t -= dt) <= 0) { this.warp = null; this.events.push({ type: 'warpEnd' }); }
       this.stumbleT = Math.max(0, this.stumbleT - dt);
 
       this._collide();
@@ -163,6 +171,26 @@
           this.scoring.shard();
           this.events.push({ type: 'shard', index: i });
         }
+      }
+      const chests = this.track.chests || [];
+      for (let i = 0; i < chests.length; i++) {
+        if (this.chestTaken[i]) continue;
+        const c = chests[i];
+        if (c.world === this.dim.world && Math.abs(c.d - P.d) < 1.1 && Math.abs(c.lane * C.LANE_W - P.lat) < 1.2) {
+          this.chestTaken[i] = 1;
+          this.scoring.chest();
+          this.events.push({ type: 'chest', index: i });
+        }
+      }
+      // time pads trigger when you run over them (not while jumping over)
+      const pads = this.track.pads || [];
+      while (this.padCursor < pads.length && pads[this.padCursor].d < P.d - 1) this.padCursor++;
+      for (let i = this.padCursor; i < pads.length && pads[i].d < P.d + 1; i++) {
+        const p = pads[i];
+        if (this.padTaken[i] || Math.abs(p.d - P.d) > 0.9 || Math.abs(p.lane * C.LANE_W - P.lat) > 1.1 || P.y > 0.6) continue;
+        this.padTaken[i] = 1;
+        this.warp = { kind: p.kind, t: DR.TIME_PADS[p.kind].duration };
+        this.events.push({ type: 'pad', kind: p.kind, index: i });
       }
     }
   }

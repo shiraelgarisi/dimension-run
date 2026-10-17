@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0c0618">
   <title>Dimension Run</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -53,9 +57,16 @@
         <button id="startBtn" class="big">START GAME</button>
         <div id="startInfo" class="sub">Level 1 · The Beginning</div>
         <button id="levelsBtn">LEVEL SELECTION</button>
+        <button id="wardrobeBtn">WARDROBE <small id="wardrobeCount"></small></button>
         <button id="exitBtn" class="ghost">EXIT</button>
       </div>
-      <div class="controls">
+      <div class="controls touch-controls">
+        <div>👆 swipe ← → move</div>
+        <div>👆 swipe ↑ jump</div>
+        <div>👆 swipe ↓ slide</div>
+        <div>👆 tap switch world</div>
+      </div>
+      <div class="controls key-controls">
         <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> move</div>
         <div><kbd>↑</kbd> / <kbd>W</kbd> jump</div>
         <div><kbd>↓</kbd> / <kbd>S</kbd> slide</div>
@@ -76,6 +87,16 @@
         <button id="levelsBack">BACK</button>
         <button id="resetBtn" class="ghost small">Reset progress</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== Wardrobe ===== -->
+  <div id="wardrobe" class="screen hidden side">
+    <div class="panel wardrobe-panel">
+      <h2>WARDROBE</h2>
+      <p id="wardrobeFound" class="small"></p>
+      <div id="wardrobeSlots"></div>
+      <button id="wardrobeBack">BACK</button>
     </div>
   </div>
 
@@ -103,7 +124,7 @@
       <div id="overNewBest" class="new-best hidden">★ NEW BEST ★</div>
       <button id="retryBtn" class="big">RETRY</button>
       <button id="overMenuBtn" class="ghost">MAIN MENU</button>
-      <p class="small">Enter to retry</p>
+      <p class="small key-only">Enter to retry</p>
     </div>
   </div>
 
@@ -169,6 +190,7 @@
   <script src="js/sim.js"></script>
   <script src="js/autopilot.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/themes.js"></script>
   <script src="js/world.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/game.js"></script>
