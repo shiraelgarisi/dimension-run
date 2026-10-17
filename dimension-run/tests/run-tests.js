@@ -157,11 +157,13 @@ test('no row is blocked in all lanes of both worlds', () => {
   }
 });
 test('difficulty rises every level (speed, density, cooldown)', () => {
+  // layouts are random every run: compare the average density over many layouts
+  const density = cfg => { let rows = 0, t = 0; for (let k = 1; k <= 30; k++) { const s = stats(DR.track.generate(cfg, k * 104729 + cfg.id)); rows += s.rows; t += s.time; } return rows / t; };
   for (let i = 1; i < tracks.length; i++) {
-    const a = stats(tracks[i - 1]), b = stats(tracks[i]);
     const ca = tracks[i - 1].cfg, cb = tracks[i].cfg;
+    const a = density(ca), b = density(cb);
     assert(cb.speed[0] > ca.speed[0] && cb.speed[1] > ca.speed[1], 'speed');
-    assert(b.perSec > a.perSec, `density L${i}=${a.perSec.toFixed(2)} L${i + 1}=${b.perSec.toFixed(2)}`);
+    assert(b > a, `density L${i}=${a.toFixed(3)} L${i + 1}=${b.toFixed(3)}`);
     assert(cb.length > ca.length, 'length');
   }
   assert(tracks[0].cfg.cooldown === 0 && tracks[1].cfg.cooldown === 0 && tracks[2].cfg.cooldown > 0, 'cooldown from L3');
@@ -176,6 +178,18 @@ test('each level introduces its signature mechanic', () => {
   assert(s[3].movers > 0 && s[3].rifts > 0, 'L4 movers and rifts');
   assert(s[4].collapse > 0 && s[4].movers > 0, 'L5 collapse and movers');
   assert(tracks[4].finaleD && tracks[4].rows.some(r => r.d > tracks[4].finaleD && r.kind !== 'finish'), 'L5 finale has obstacles');
+  // from level 4, sideways movement (sliding blocks, swaying world) grows every level
+  // (layouts are random every run, so compare the average over many layouts)
+  const slideRate = cfg => {
+    let n = 0, t = 0;
+    for (let k = 1; k <= 30; k++) { const s = stats(DR.track.generate(cfg, k * 7919 + cfg.id)); n += s.movers; t += s.time; }
+    return n / t;
+  };
+  for (let i = 4; i < tracks.length; i++) {
+    const a = slideRate(tracks[i - 1].cfg), b = slideRate(tracks[i].cfg);
+    assert(b > a, `sliding blocks per second L${i}=${a.toFixed(3)} L${i + 1}=${b.toFixed(3)}`);
+    assert(tracks[i].cfg.instability > tracks[i - 1].cfg.instability, `sway L${i + 1}`);
+  }
   const last = tracks[tracks.length - 1];
   assert(last.cfg.boss && last.cfg.final && DR.LEVELS.filter(c => c.final).length === 1, 'only the last level is the boss / final level');
   assert(last.shards.length >= 4, 'boss level has shards to hit the boss');

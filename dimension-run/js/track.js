@@ -172,7 +172,10 @@
       const other = except(final).filter(l => l !== from)[0];
       if (other !== undefined && r.chance(0.4)) c[w][other] = B();
       if (r.chance(0.5)) fill(c, 1 - w, B);
-      else c[1 - w][r.int(0, 2)] = B();
+      else if (r.chance(x.sideShift * 0.6)) {   // the other world's block slides in too
+        const f2 = r.int(0, 2);
+        c[1 - w][f2] = B({ mover: { from: r.pick(except(f2)) } });
+      } else c[1 - w][r.int(0, 2)] = B();
       return [{ cells: c }];
     },
     enemy(r, x) {
@@ -180,7 +183,7 @@
       const lanes = r.shuffle(ALL).slice(0, r.int(1, 2));
       lanes.forEach((l, i) => {
         const free = except(l).filter(k => !lanes.includes(k));
-        const move = x.movingEnemies && i === 0 && free.length && r.chance(0.65);
+        const move = x.movingEnemies && i === 0 && free.length && r.chance(0.5 + 0.4 * x.sideShift);
         c[1][l] = B({ enemy: true, mover: move ? { from: r.pick(free) } : undefined });
       });
       if (r.chance(0.6)) c[0][r.int(0, 2)] = B();
@@ -262,7 +265,7 @@
     const r = U.rng(seed);
     const level = cfg.id;
     const ctx = {
-      level, cooldown: cfg.cooldown, movingEnemies: !!cfg.movingEnemies,
+      level, cooldown: cfg.cooldown, movingEnemies: !!cfg.movingEnemies, sideShift: cfg.sideShift || 0,
       side: () => (r.chance(level === 1 ? 0.62 : 0.5) ? 0 : 1),
     };
     const solveCfg = { cooldown: cfg.cooldown, switchAllowed: true };

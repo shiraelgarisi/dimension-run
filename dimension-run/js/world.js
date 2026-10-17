@@ -1444,7 +1444,9 @@
         const tA = (mv.row.d - P.d) / speed;
         // same timing the solver assumes: settled MOVER_SETTLE seconds before you arrive
         const p = 1 - U.clamp((tA - C.MOVER_SETTLE) / C.MOVER_DURATION, 0, 1);
-        const lat = U.lerp(mv.from, mv.to, U.smooth(p)) * LW;
+        // later levels: the block wobbles side to side while it slides (it always settles in time)
+        const wob = (sim.track.cfg.sideShift || 0) * (1 - p) * (p > 0 ? 1 : 0.5) * Math.sin(t * 9 + mv.row.d) * 0.45;
+        const lat = (U.lerp(mv.from, mv.to, U.smooth(p)) + wob) * LW;
         if (mv.rock && mv.g.position.x !== lat) mv.rock.rotation.z -= (lat - mv.g.position.x) * 0.9;
         mv.g.position.x = lat;
         mv.ring.scale.setScalar(1 + 0.15 * Math.sin(t * 10));
@@ -1876,6 +1878,7 @@
       // Chaos/Final levels: the world feels unstable
       const inst = view.instability || 0;
       if (this.glitch > 0) this.glitch = Math.max(0, this.glitch - dt);
+      cam.position.x += inst * inst * Math.sin(t * 0.8) * 0.45;   // the world sways sideways more on later levels
       const roll = inst * (Math.sin(t * 1.3) * 0.035 + Math.sin(t * 3.7) * 0.012) + (this.glitch > 0 ? (rnd() - 0.5) * 0.06 : 0);
       this.camRoll = U.lerp(this.camRoll, roll, U.damp(6, dt));
       cam.rotateZ(this.camRoll);
