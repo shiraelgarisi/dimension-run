@@ -445,9 +445,12 @@
   // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
-  // private link: ?unlock=all opens every level on this device (saved, so it sticks)
+  // private link: ?unlock=all opens every level and wardrobe item on this device (saved, so it sticks)
   if (params.get('unlock') === 'all') {
     save.data.unlocked = DR.LEVELS.length;
+    for (const slot in DR.COSMETICS) {
+      for (const item of DR.COSMETICS[slot]) if (!save.owns(slot, item.id)) save.data.owned.push(slot + ':' + item.id);
+    }
     save.write();
   }
   world.applyOutfit(save.data.equipped);
