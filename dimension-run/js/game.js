@@ -445,6 +445,11 @@
   // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
+  // private link: ?unlock=all opens every level on this device (saved, so it sticks)
+  if (params.get('unlock') === 'all') {
+    save.data.unlocked = DR.LEVELS.length;
+    save.write();
+  }
   world.applyOutfit(save.data.equipped);
   toMenu();
   if (params.has('level')) {
