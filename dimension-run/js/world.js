@@ -714,7 +714,9 @@
       const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: this.tex.blob, transparent: true, depthWrite: false }));
       shadow.position.y = 0.03;
       this.scene.add(root, shadow);
-      return { root, body, head, armL, armR, legL, legR, shadow, hatSlot, backSlot, phase: 0, scale: 1 };
+      // the pet runs a little behind and to the right; it rides on the root, so it jumps and changes lanes with you
+      const petSlot = new THREE.Group(); petSlot.position.set(1.05, 0, 0.3); petSlot.scale.setScalar(1.3); root.add(petSlot);
+      return { root, body, head, armL, armR, legL, legR, shadow, hatSlot, backSlot, petSlot, phase: 0, scale: 1 };
     }
 
     /** Dress the runner: { hat, outfit, back } ids from DR.COSMETICS. */
@@ -722,7 +724,9 @@
       const R = this.runner, find = (slot, id) => DR.COSMETICS[slot].find(i => i.id === id) || DR.COSMETICS[slot][0];
       if (this.outfitRes) this.outfitRes.dispose();
       const X = (this.outfitRes = DR.dress.Res());
-      R.hatSlot.clear(); R.backSlot.clear();
+      R.hatSlot.clear(); R.backSlot.clear(); R.petSlot.clear();
+      this.pet = eq.pet && eq.pet !== 'none' ? DR.pets.build(eq.pet, X) : null;
+      if (this.pet) R.petSlot.add(this.pet.g);
       this.backAnim = null;
       const o = find('outfit', eq.outfit);
       this.shirtMat.color.setHex(o.shirt); this.pantsMat.color.setHex(o.pants); this.scarfBase.setHex(o.scarf);
@@ -1171,6 +1175,7 @@
         this.magnetFx.children.forEach((r, k) => { const u = (t * 1.2 + k * 0.5) % 1; r.scale.setScalar(0.6 + u * 1.6); r.material.opacity = 0.6 * (1 - u); });
       }
       if (this.backAnim) this.backAnim(t, running ? 1 : 0);
+      if (this.pet) DR.pets.animate(this.pet, t, running && P.grounded ? 1 : 0, R.phase);
       R.shadow.position.set(x, 0.03, z);
       R.shadow.visible = !P.falling && R.scale > 0.2;
       R.shadow.scale.setScalar(Math.max(0.3, 1 - y * 0.25));

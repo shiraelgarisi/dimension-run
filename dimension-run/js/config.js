@@ -167,6 +167,15 @@
       { id: 'jungle', name: 'Jungle', icon: '🌿', shirt: 0x4a8a3a, pants: 0x5a4a2a, scarf: 0x8adc3a },
       { id: 'ice', name: 'Ice', icon: '❄️', shirt: 0x8adfff, pants: 0x2a5a8a, scarf: 0xffffff },
     ],
+    pet: [
+      { id: 'none', name: 'No pet', icon: '▫️', free: true },
+      { id: 'panda', name: 'Panda', icon: '🐼' },
+      { id: 'corgi', name: 'Corgi', icon: '🐶' },
+      { id: 'chick', name: 'Chick', icon: '🐥' },
+      { id: 'cat', name: 'Cat', icon: '🐱' },
+      { id: 'koala', name: 'Koala', icon: '🐨' },
+      { id: 'raccoon', name: 'Raccoon', icon: '🦝' },
+    ],
     back: [
       { id: 'backpack', name: 'Backpack', icon: '🎒', free: true },
       { id: 'none', name: 'Nothing', icon: '▫️', free: true },
@@ -176,7 +185,7 @@
       { id: 'shield', name: 'Shield', icon: '🛡️' },
     ],
   };
-  DR.COSMETIC_SLOTS = { hat: 'Hats', outfit: 'Outfits', back: 'Back' };
+  DR.COSMETIC_SLOTS = { pet: 'Pets', hat: 'Hats', outfit: 'Outfits', back: 'Back' };
 
   // Coin shop. Power-ups are used up automatically at the start of your next run.
   DR.SHOP = {
