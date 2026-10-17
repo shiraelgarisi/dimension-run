@@ -58,7 +58,7 @@
   function showWardrobe() {
     wardrobeOpen = true;
     const render = () => UI.renderWardrobe(save, (slot, id) => {
-      if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
+      if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); if (slot === 'back') world.showBackT = 3; world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
     });
     render();
     UI.show('wardrobe');

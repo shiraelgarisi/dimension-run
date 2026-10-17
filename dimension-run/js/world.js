@@ -763,8 +763,10 @@
           break;
         case 'cape': {
           const pivot = new THREE.Group(); pivot.position.set(0, 0.3, 0.02); back.add(pivot);
-          pivot.add(X.mesh(new THREE.BoxGeometry(0.6, 1.0, 0.03), X.lam(0xc8202a), 0, -0.5, 0));
-          this.backAnim = (t, run) => { pivot.rotation.x = 0.25 + run * (0.5 + Math.sin(t * 14) * 0.12); };
+          pivot.add(X.mesh(new THREE.BoxGeometry(0.72, 1.3, 0.04), X.lam(0xc8202a), 0, -0.65, 0));
+          pivot.add(X.mesh(new THREE.BoxGeometry(0.74, 0.08, 0.06), X.lam(0xffcf3a), 0, -1.28, 0));
+          // negative x-rotation swings the bottom out behind the runner; it flies higher when running
+          this.backAnim = (t, run) => { pivot.rotation.x = -(0.12 + Math.sin(t * 2.5) * 0.05 + run * (0.6 + Math.sin(t * 14) * 0.12)); };
           break;
         }
         case 'jetpack': {
@@ -1104,6 +1106,19 @@
       const R = this.runner;
       const x = P.lat, y = P.y, z = -P.d;
       R.root.position.set(x, y, z);
+      // wardrobe: the runner turns slowly like on a turntable, and swings round to show a new back item
+      if (view.wardrobe) {
+        this.showBackT = Math.max(0, (this.showBackT || 0) - dt);
+        let a = this.turnA || 0;
+        if (this.showBackT > 0) {
+          const back = Math.PI + Math.round((a - Math.PI) / (Math.PI * 2)) * Math.PI * 2;
+          a = U.lerp(a, back, U.damp(5, dt));
+        } else a += dt * 0.8;
+        this.turnA = a;
+      } else {
+        this.turnA = U.lerp(this.turnA || 0, Math.round((this.turnA || 0) / (Math.PI * 2)) * Math.PI * 2, U.damp(6, dt));
+      }
+      R.root.rotation.y = this.turnA;
       const running = view.mode === 'play';
       if (running) R.phase += dt * sim.speed * 0.62;
       let legL = 0, legR = 0, armL = 0, armR = 0, bodyX = -0.15, bodyY = 0;
@@ -1562,7 +1577,7 @@
       const x = P.lat, z = -P.d;
       if (view.mode === 'menu' && view.wardrobe) {
         // close-up of the runner, framed on the left so the wardrobe panel fits on the right
-        const a = Math.PI + Math.sin(t * 0.5) * 0.7;
+        const a = Math.PI;
         const target = new THREE.Vector3(x + Math.sin(a) * 3.6, 2.1, z + Math.cos(a) * 3.6);
         cam.position.lerp(target, U.damp(4, dt));
         cam.lookAt(x + Math.cos(a) * 1.1, 1.45, z - Math.sin(a) * 1.1);
