@@ -265,3 +265,43 @@ h2 { letter-spacing: 2px; }
 #hint { font-weight: 600; letter-spacing: 0.3px; }
 button { font-weight: 600; }
 button.world-toggle { width: auto; margin: 6px auto 0; padding: 8px 14px; font-size: 13px; }
+
+/* ---------- gift box reveal ---------- */
+#gift { background: radial-gradient(ellipse at center, rgba(60, 20, 90, 0.75), rgba(10, 4, 24, 0.92)); }
+.gift-wrap { width: min(420px, 100%); text-align: center; }
+.gift-wrap h2 { color: #ffe066; text-shadow: 0 0 20px rgba(255, 200, 40, 0.8); }
+.gift-stage { position: relative; height: 260px; display: flex; align-items: center; justify-content: center; }
+.giftbox { position: relative; width: 170px; height: 170px; padding: 0; margin: 0; border: none; background: none; cursor: pointer; z-index: 2; animation: giftIdle 1.6s ease-in-out infinite; transition: transform 0.3s, opacity 0.4s; }
+.giftbox:hover, .giftbox:focus-visible { background: none; transform: scale(1.05); }
+.giftbox .body { position: absolute; left: 18px; bottom: 6px; width: 134px; height: 104px; border-radius: 10px; background: linear-gradient(160deg, #ff6fa8, #d81b60); box-shadow: inset -12px -10px 0 rgba(0, 0, 0, 0.15), 0 10px 30px rgba(0, 0, 0, 0.5); }
+.giftbox .body::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 26px; margin-left: -13px; background: linear-gradient(90deg, #ffd84a, #ffb020); }
+.giftbox .lid { position: absolute; left: 8px; top: 34px; width: 154px; height: 36px; border-radius: 10px; z-index: 3; background: linear-gradient(160deg, #ff8ab8, #e91e63); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18); transition: transform 0.55s cubic-bezier(0.3, 1.5, 0.6, 1), opacity 0.6s; }
+.giftbox .lid::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 26px; margin-left: -13px; background: linear-gradient(90deg, #ffd84a, #ffb020); }
+.giftbox .bow { position: absolute; left: 50%; top: -30px; width: 0; height: 0; }
+.giftbox .bow::before, .giftbox .bow::after { content: ''; position: absolute; top: 0; width: 46px; height: 34px; border: 9px solid #ffd84a; border-radius: 50% 50% 10% 50%; }
+.giftbox .bow::before { right: 2px; transform: rotate(-20deg); }
+.giftbox .bow::after { left: 2px; transform: scaleX(-1) rotate(-20deg); }
+.giftbox.shake { animation: giftShake 0.6s linear; }
+.giftbox.open { animation: none; }
+.giftbox.open .lid { transform: translateY(-150px) rotate(-30deg); opacity: 0; }
+.giftbox.open .body { animation: giftDrop 0.6s 0.2s ease-in forwards; }
+.gift-rays { position: absolute; width: 420px; height: 420px; border-radius: 50%; opacity: 0; transform: scale(0.3);
+  background: repeating-conic-gradient(rgba(255, 230, 120, 0.35) 0 10deg, transparent 10deg 24deg); transition: opacity 0.4s, transform 0.6s;
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%); mask: radial-gradient(circle, #000 20%, transparent 70%); }
+.gift-stage.opened .gift-rays { opacity: 1; transform: scale(1); animation: raysSpin 8s linear infinite; }
+.gift-item { position: absolute; z-index: 4; animation: itemPop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1); }
+.gift-item .ico { font-size: 96px; line-height: 1; filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5)); }
+.gift-item .nm { font-family: 'Bungee', 'Fredoka', sans-serif; font-size: 26px; margin-top: 6px; color: #fff; text-shadow: 0 0 16px rgba(255, 220, 80, 0.9); }
+.gift-item .slot { display: block; color: #ffe066; letter-spacing: 3px; font-weight: 700; margin-top: 2px; }
+.gift-buttons { display: flex; gap: 10px; margin-top: 8px; animation: fadeIn 0.4s; }
+.gift-buttons button { flex: 1; margin: 0; }
+#giftWear { background: linear-gradient(135deg, #fff2a8, #ffcf3a); color: #2a1a00; border: none; }
+#giftWear:disabled { opacity: 0.7; cursor: default; }
+.gift-confetti { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.gift-confetti i { position: absolute; top: 50%; width: 10px; height: 14px; border-radius: 2px; opacity: 0; animation: confetti 1.3s cubic-bezier(0.2, 0.7, 0.4, 1) forwards; }
+@keyframes giftIdle { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+@keyframes giftShake { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-12deg) scale(1.05); } 30% { transform: rotate(10deg); } 45% { transform: rotate(-9deg) scale(1.08); } 60% { transform: rotate(8deg); } 75% { transform: rotate(-5deg) scale(1.1); } }
+@keyframes giftDrop { to { transform: translateY(40px) scale(0.8); opacity: 0; } }
+@keyframes raysSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes itemPop { from { transform: scale(0) translateY(60px); opacity: 0; } }
+@keyframes confetti { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 320px)) rotate(var(--r)); } }

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -106,6 +106,27 @@
     </div>
   </div>
 
+  <!-- ===== Gift box (items won in the run) ===== -->
+  <div id="gift" class="screen hidden">
+    <div class="gift-wrap">
+      <h2 id="giftTitle">YOU WON A GIFT!</h2>
+      <p id="giftHint" class="msg">Tap the box to open it</p>
+      <div class="gift-stage">
+        <div class="gift-rays"></div>
+        <button id="giftBox" class="giftbox" aria-label="Open the gift">
+          <span class="lid"><span class="bow"></span></span>
+          <span class="body"></span>
+        </button>
+        <div id="giftItem" class="gift-item hidden"><div class="ico"></div><div class="nm"></div><small class="slot"></small></div>
+        <div id="giftConfetti" class="gift-confetti"></div>
+      </div>
+      <div id="giftButtons" class="gift-buttons hidden">
+        <button id="giftWear">WEAR IT NOW</button>
+        <button id="giftNext" class="big">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Shop ===== -->
   <div id="shop" class="screen hidden">
     <div class="panel">
@@ -196,22 +217,22 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=13"></script>
-  <script src="js/util.js?v=13"></script>
-  <script src="js/config.js?v=15"></script>
-  <script src="js/save.js?v=13"></script>
-  <script src="js/track.js?v=15"></script>
-  <script src="js/collision.js?v=13"></script>
-  <script src="js/player.js?v=13"></script>
-  <script src="js/dimension.js?v=13"></script>
-  <script src="js/scoring.js?v=13"></script>
-  <script src="js/sim.js?v=13"></script>
-  <script src="js/autopilot.js?v=13"></script>
-  <script src="js/audio.js?v=13"></script>
-  <script src="js/pets.js?v=14"></script>
-  <script src="js/themes.js?v=13"></script>
-  <script src="js/world.js?v=13"></script>
-  <script src="js/ui.js?v=13"></script>
-  <script src="js/game.js?v=13"></script>
+  <script src="vendor/three.min.js?v=16"></script>
+  <script src="js/util.js?v=16"></script>
+  <script src="js/config.js?v=16"></script>
+  <script src="js/save.js?v=16"></script>
+  <script src="js/track.js?v=16"></script>
+  <script src="js/collision.js?v=16"></script>
+  <script src="js/player.js?v=16"></script>
+  <script src="js/dimension.js?v=16"></script>
+  <script src="js/scoring.js?v=16"></script>
+  <script src="js/sim.js?v=16"></script>
+  <script src="js/autopilot.js?v=16"></script>
+  <script src="js/audio.js?v=16"></script>
+  <script src="js/pets.js?v=16"></script>
+  <script src="js/themes.js?v=16"></script>
+  <script src="js/world.js?v=16"></script>
+  <script src="js/ui.js?v=16"></script>
+  <script src="js/game.js?v=16"></script>
 </body>
 </html>

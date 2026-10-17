@@ -18,7 +18,7 @@
   // mode: menu | countdown | play | paused | dead | finish | victory | result
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
-  let wardrobeOpen = false, padHints = {};
+  let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
   let countdownStep = -1, milestone = 0, finaleShown = false, glitchT = 4, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
 
   function setMode(m) { mode = m; modeT = 0; if (m !== 'paused' && m !== 'result') viewMode = m; }
@@ -116,6 +116,7 @@
     countdownStep = -1;
     milestone = 0;
     padHints = {};
+    prizes = [];
     setWarpClass(null);
     finaleShown = false;
     document.body.dataset.level = String(n);
@@ -278,8 +279,8 @@
         case 'shard': Sound.shard(); world.hideShard(e.index); UI.banner('✦ +250<small>DIMENSION SHARD</small>', '', 900); break;
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
-          const got = save.unlockRandom();
-          if (got) UI.banner(`TREASURE!<small>NEW ${got.slot.toUpperCase()}: ${got.item.icon} ${got.item.name.toUpperCase()}</small><small class="theme">WEAR IT IN THE WARDROBE</small>`, 'treasure', 2200);
+          const got = save.unlockRandom();   // saved right away, but kept a surprise until the gift box
+          if (got) { prizes.push(got); UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800); }
           else UI.banner('TREASURE!<small>+300 POINTS</small>', 'treasure', 1400);
           break;
         }
@@ -429,11 +430,12 @@
           const isBest = save.recordScore(level, score);
           save.write();
           UI.hud(false);
-          UI.gameOver({
+          const over = {
             cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest,
             wallet: save.data.wallet, reviveCost: reviveCost(),
-          });
+          };
           mode = 'result';
+          openGifts(() => UI.gameOver(over));
         }
         break;
       case 'finish':
@@ -461,15 +463,28 @@
     const isBest = save.completeLevel(level, s.score);
     UI.hud(false);
     UI.vignette(false);
-    if (track.cfg.finale) {
-      UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest });
-    } else {
-      UI.complete({
-        cfg: track.cfg, distance: track.length, coins: s.coins, shards: s.shards, totalShards: track.shards.length,
-        bonus: s.bonus, score: s.score, isBest, unlockedNew: save.data.unlocked > wasUnlocked,
-      });
-    }
     mode = 'result';
+    const unlockedNew = save.data.unlocked > wasUnlocked;
+    openGifts(() => {
+      if (track.cfg.finale) {
+        UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest });
+      } else {
+        UI.complete({
+          cfg: track.cfg, distance: track.length, coins: s.coins, shards: s.shards, totalShards: track.shards.length,
+          bonus: s.bonus, score: s.score, isBest, unlockedNew,
+        });
+      }
+    });
+  }
+
+  // gift boxes for the items won this run: tap to open each one, then the result screen
+  function openGifts(then) {
+    if (!prizes.length || bot) { then(); return; }
+    const list = prizes;
+    prizes = [];
+    UI.showGifts(list, (slot, id) => {
+      if (save.equip(slot, id)) world.applyOutfit(save.data.equipped);
+    }, then);
   }
 
   function frame(dt) {

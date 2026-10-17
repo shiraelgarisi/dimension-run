@@ -4,7 +4,7 @@
   'use strict';
   const DR = window.DR;
   const $ = id => document.getElementById(id);
-  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'gift', 'pause', 'over', 'complete', 'victory', 'exit'];
   const RING = 2 * Math.PI * 28;
 
   let hintText = '', bannerTimer = null, lastHud = {};
@@ -86,6 +86,55 @@
         else b.addEventListener('click', () => { DR.Sound.denied(); b.animate([{ transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'none' }], 200); });
         grid.appendChild(b);
       }
+    },
+
+    /** Gift boxes: tap a box, it shakes, bursts open and shows the item. done() after the last one. */
+    showGifts(list, wear, done) {
+      let i = 0;
+      const box = $('giftBox'), item = $('giftItem'), btns = $('giftButtons'), wearBtn = $('giftWear');
+      const one = () => {
+        const g = list[i];
+        $('giftTitle').textContent = list.length > 1 ? `GIFT ${i + 1} OF ${list.length}` : 'YOU WON A GIFT!';
+        $('giftHint').classList.remove('hidden');
+        box.className = 'giftbox';
+        box.parentNode.classList.remove('opened');
+        box.disabled = false;
+        item.classList.add('hidden');
+        btns.classList.add('hidden');
+        $('giftConfetti').innerHTML = '';
+        item.querySelector('.ico').textContent = g.item.icon;
+        item.querySelector('.nm').textContent = g.item.name;
+        item.querySelector('.slot').textContent = 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
+        wearBtn.textContent = g.slot === 'pet' ? 'TAKE IT ALONG' : 'WEAR IT NOW';
+        wearBtn.disabled = false;
+        $('giftNext').textContent = i < list.length - 1 ? 'NEXT GIFT' : 'CONTINUE';
+        setTimeout(() => box.focus({ preventScroll: true }), 60);
+      };
+      box.onclick = () => {
+        if (box.disabled) return;
+        box.disabled = true;
+        $('giftHint').classList.add('hidden');
+        box.classList.add('shake');
+        DR.Sound.bounce();
+        setTimeout(() => {
+          box.classList.add('open');
+          box.parentNode.classList.add('opened');
+          DR.Sound.chest();
+          this.flash('w');
+          const cf = $('giftConfetti');
+          const cols = ['#ff4d8a', '#ffd84a', '#39f3ff', '#6cf08a', '#b04dff', '#ff8a3a'];
+          for (let k = 0; k < 40; k++) {
+            const c = document.createElement('i');
+            c.style.cssText = `left:${50 + (Math.random() - 0.5) * 20}%;background:${cols[k % cols.length]};--dx:${(Math.random() - 0.5) * 460}px;--dy:${-120 - Math.random() * 260}px;--r:${Math.random() * 720}deg;animation-delay:${Math.random() * 0.15}s`;
+            cf.appendChild(c);
+          }
+        }, 650);
+        setTimeout(() => { item.classList.remove('hidden'); btns.classList.remove('hidden'); $('giftNext').focus({ preventScroll: true }); }, 1000);
+      };
+      wearBtn.onclick = () => { const g = list[i]; wear(g.slot, g.item.id); DR.Sound.click(); wearBtn.textContent = '✓ ON!'; wearBtn.disabled = true; };
+      $('giftNext').onclick = () => { DR.Sound.click(); i++; if (i < list.length) one(); else done(); };
+      this.show('gift');
+      one();
     },
 
     renderShop(save, buy) {
