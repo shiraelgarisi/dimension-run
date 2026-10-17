@@ -104,9 +104,10 @@
         $('giftConfetti').innerHTML = '';
         item.querySelector('.ico').textContent = g.item.icon;
         item.querySelector('.nm').textContent = g.item.name;
-        item.querySelector('.slot').textContent = 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
+        item.querySelector('.slot').textContent = g.slot === 'coins' ? 'FOR THE SHOP' : 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
         wearBtn.textContent = g.slot === 'pet' ? 'TAKE IT ALONG' : 'WEAR IT NOW';
         wearBtn.disabled = false;
+        wearBtn.classList.toggle('hidden', g.slot === 'coins');
         $('giftNext').textContent = i < list.length - 1 ? 'NEXT GIFT' : 'CONTINUE';
         setTimeout(() => box.focus({ preventScroll: true }), 60);
       };

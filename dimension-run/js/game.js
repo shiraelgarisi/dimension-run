@@ -280,8 +280,10 @@
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
           const got = save.unlockRandom();   // saved right away, but kept a surprise until the gift box
-          if (got) { prizes.push(got); UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800); }
-          else UI.banner('TREASURE!<small>+300 POINTS</small>', 'treasure', 1400);
+          // own everything already? then the gift is a bag of coins
+          if (got) prizes.push(got);
+          else { save.addCoins(100); prizes.push({ slot: 'coins', item: { id: null, icon: '💰', name: '100 Coins' } }); }
+          UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800);
           break;
         }
         case 'pad':
