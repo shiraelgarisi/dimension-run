@@ -12,10 +12,11 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, newItems: [], onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, newItems: [], stars: {}, onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
+  const starCount = m => (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1);
   const exists = key => { const [slot, id] = String(key).split(':'); return !!(COS()[slot] && COS()[slot].some(i => i.id === id)); };
 
   function sanitise(raw) {
@@ -37,6 +38,10 @@
     if (raw.onboard && typeof raw.onboard === 'object') {
       d.onboard.gift = raw.onboard.gift === true;
       d.onboard.wardrobe = [0, 1, 2].includes(raw.onboard.wardrobe) ? raw.onboard.wardrobe : 0;
+    }
+    for (let i = 0; i <= LEVEL_COUNT; i++) {
+      const m = Math.floor(Number(raw.stars && raw.stars[i]));
+      if (m > 0 && m < 8) d.stars[i] = m;
     }
     if (Array.isArray(raw.newItems)) d.newItems = raw.newItems.filter(k => typeof k === 'string' && exists(k)).slice(0, 50);
     const gm = Math.floor(Number(raw.gems));
@@ -154,11 +159,26 @@
       if (isBest) { this.data.endlessBest = Math.floor(meters); this.write(); }
       return isBest;
     },
+    /** Stars earned on a level (bitmask 1 finish, 2 all shards, 4 no hits). Returns the newly earned ones. */
+    addStars(level, mask) {
+      const had = this.data.stars[level] || 0, gained = mask & ~had;
+      if (gained) {
+        this.data.stars[level] = had | mask;
+        this.data.gems += DR.STARS.reward * starCount(gained);
+        this.write();
+      }
+      return gained;
+    },
+    starsOf(level) { return this.data.stars[level] || 0; },
+    totalStars() { let t = 0; for (const k in this.data.stars) t += starCount(this.data.stars[k]); return t; },
     unlockRandom(rand = Math.random) {
       const all = Object.keys(COS()).flatMap(slot => COS()[slot].filter(item => !item.price).map(item => ({ slot, item })));
       const left = all.filter(x => !this.owns(x.slot, x.item.id));
       if (!left.length) return null;
-      const pick = left[Math.floor(rand() * left.length)];
+      // rarer items come out less often
+      const w = x => (DR.RARITY[x.item.rarity] || DR.RARITY.common).weight;
+      let r = rand() * left.reduce((t, x) => t + w(x), 0), pick = left[left.length - 1];
+      for (const x of left) { if ((r -= w(x)) < 0) { pick = x; break; } }
       this.data.owned.push(pick.slot + ':' + pick.item.id);
       this.write();
       return pick;

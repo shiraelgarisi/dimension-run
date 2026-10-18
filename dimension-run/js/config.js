@@ -240,42 +240,50 @@
   DR.COSMETICS = {
     hat: [
       { id: 'none', name: 'No hat', icon: '🙂', free: true },
-      { id: 'crown', name: 'Golden Crown', icon: '👑' },
-      { id: 'cowboy', name: 'Cowboy Hat', icon: '🤠' },
-      { id: 'wizard', name: 'Wizard Hat', icon: '🧙' },
-      { id: 'tophat', name: 'Top Hat', icon: '🎩' },
-      { id: 'helmet', name: 'Space Helmet', icon: '👩‍🚀' },
-      { id: 'viking', name: 'Viking Helmet', icon: '🪓' },
-      { id: 'party', name: 'Party Hat', icon: '🥳' },
+      { id: 'crown', name: 'Golden Crown', icon: '👑', rarity: 'legendary' },
+      { id: 'cowboy', name: 'Cowboy Hat', icon: '🤠', rarity: 'common' },
+      { id: 'wizard', name: 'Wizard Hat', icon: '🧙', rarity: 'rare' },
+      { id: 'tophat', name: 'Top Hat', icon: '🎩', rarity: 'common' },
+      { id: 'helmet', name: 'Space Helmet', icon: '👩‍🚀', rarity: 'legendary' },
+      { id: 'viking', name: 'Viking Helmet', icon: '🪓', rarity: 'rare' },
+      { id: 'party', name: 'Party Hat', icon: '🥳', rarity: 'common' },
     ],
     outfit: [
       { id: 'explorer', name: 'Explorer', icon: '🧭', free: true, shirt: 0xf2f2f2, pants: 0x34405e, scarf: 0xffb020 },
-      { id: 'ninja', name: 'Ninja', icon: '🥷', shirt: 0x1c1c26, pants: 0x14141c, scarf: 0xff2a3a },
-      { id: 'royal', name: 'Royal', icon: '💜', shirt: 0x6a2a9a, pants: 0x2a1a4a, scarf: 0xffd84a },
-      { id: 'astro', name: 'Astronaut', icon: '🚀', shirt: 0xf4f4f8, pants: 0xc8c8d4, scarf: 0xff7a1a },
-      { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', shirt: 0xc8302a, pants: 0x2a1a14, scarf: 0x111111 },
-      { id: 'jungle', name: 'Jungle', icon: '🌿', shirt: 0x4a8a3a, pants: 0x5a4a2a, scarf: 0x8adc3a },
-      { id: 'ice', name: 'Ice', icon: '❄️', shirt: 0x8adfff, pants: 0x2a5a8a, scarf: 0xffffff },
+      { id: 'ninja', name: 'Ninja', icon: '🥷', shirt: 0x1c1c26, pants: 0x14141c, scarf: 0xff2a3a, rarity: 'rare' },
+      { id: 'royal', name: 'Royal', icon: '💜', shirt: 0x6a2a9a, pants: 0x2a1a4a, scarf: 0xffd84a, rarity: 'legendary' },
+      { id: 'astro', name: 'Astronaut', icon: '🚀', shirt: 0xf4f4f8, pants: 0xc8c8d4, scarf: 0xff7a1a, rarity: 'legendary' },
+      { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', shirt: 0xc8302a, pants: 0x2a1a14, scarf: 0x111111, rarity: 'rare' },
+      { id: 'jungle', name: 'Jungle', icon: '🌿', shirt: 0x4a8a3a, pants: 0x5a4a2a, scarf: 0x8adc3a, rarity: 'common' },
+      { id: 'ice', name: 'Ice', icon: '❄️', shirt: 0x8adfff, pants: 0x2a5a8a, scarf: 0xffffff, rarity: 'common' },
     ],
     pet: [
       { id: 'none', name: 'No pet', icon: '▫️', free: true },
       // pets are rare: bought with diamonds (found in treasure chests and scattered on the path)
-      { id: 'chick', name: 'Chick', icon: '🐥', price: 100 },
-      { id: 'cat', name: 'Cat', icon: '🐱', price: 100 },
-      { id: 'corgi', name: 'Corgi', icon: '🐶', price: 200 },
-      { id: 'koala', name: 'Koala', icon: '🐨', price: 200 },
-      { id: 'panda', name: 'Panda', icon: '🐼', price: 350 },
-      { id: 'raccoon', name: 'Raccoon', icon: '🦝', price: 350 },
+      { id: 'chick', name: 'Chick', icon: '🐥', price: 100, rarity: 'rare' },
+      { id: 'cat', name: 'Cat', icon: '🐱', price: 100, rarity: 'rare' },
+      { id: 'corgi', name: 'Corgi', icon: '🐶', price: 200, rarity: 'rare' },
+      { id: 'koala', name: 'Koala', icon: '🐨', price: 200, rarity: 'rare' },
+      { id: 'panda', name: 'Panda', icon: '🐼', price: 350, rarity: 'legendary' },
+      { id: 'raccoon', name: 'Raccoon', icon: '🦝', price: 350, rarity: 'legendary' },
     ],
     back: [
       { id: 'backpack', name: 'Backpack', icon: '🎒', free: true },
       { id: 'none', name: 'Nothing', icon: '▫️', free: true },
-      { id: 'cape', name: 'Hero Cape', icon: '🦸' },
-      { id: 'jetpack', name: 'Jetpack', icon: '🔥' },
-      { id: 'wings', name: 'Angel Wings', icon: '🪽' },
-      { id: 'shield', name: 'Shield', icon: '🛡️' },
+      { id: 'cape', name: 'Hero Cape', icon: '🦸', rarity: 'common' },
+      { id: 'jetpack', name: 'Jetpack', icon: '🔥', rarity: 'rare' },
+      { id: 'wings', name: 'Angel Wings', icon: '🪽', rarity: 'legendary' },
+      { id: 'shield', name: 'Shield', icon: '🛡️', rarity: 'rare' },
     ],
   };
+  // rarity: how often a chest gives it (weights) and its colour. Items without one are common.
+  DR.RARITY = {
+    common: { name: 'Common', color: '#6ab8ff', weight: 60 },
+    rare: { name: 'Rare', color: '#c86aff', weight: 30 },
+    legendary: { name: 'Legendary', color: '#ffc83a', weight: 10 },
+  };
+  // stars per level: 1 finish, 2 all shards, 4 no hits (no bumps, no shield used, no continue)
+  DR.STARS = { reward: 5, endless: [1000, 2500, 5000] };   // diamonds per new star; Infinite World stars by metres
   DR.COSMETIC_SLOTS = { pet: 'Pets', hat: 'Hats', outfit: 'Outfits', back: 'Back' };
 
   // Coin shop. Power-ups are used up automatically at the start of your next run.

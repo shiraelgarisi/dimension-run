@@ -374,6 +374,28 @@ test('tutorial: slide, jump, sideways, switch worlds, in that order, then the fi
   DR.save.load();
   assert(!DR.save.data.tutorialDone, 'new players get it');
 });
+test('stars: earned once each, kept forever, 5 diamonds per new star', () => {
+  DR.save.reset();
+  DR.save.data.stars = {}; DR.save.data.gems = 0;
+  assert(DR.save.addStars(3, 1) === 1 && DR.save.data.gems === 5);
+  assert(DR.save.addStars(3, 1 | 4) === 4 && DR.save.data.gems === 10, 'only the new star pays');
+  assert(DR.save.addStars(3, 1) === 0 && DR.save.starsOf(3) === 5 && DR.save.totalStars() === 2);
+  const sim = play(tracks[0], 0, 1);
+  assert(sim.state === 'finished' && sim.hits === 0, 'a clean autopilot run has no hits');
+});
+test('rarity: every item has one, and legendary items drop least often', () => {
+  for (const slot in DR.COSMETICS) for (const it of DR.COSMETICS[slot]) assert(!it.rarity || DR.RARITY[it.rarity], it.id);
+  const count = { common: 0, rare: 0, legendary: 0 };
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 600; i++) {
+    DR.save.reset();
+    DR.save.data.owned = DR.save.data.owned.filter(k => { const [sl, id] = k.split(':'); const it = DR.COSMETICS[sl].find(x => x.id === id); return it && it.free; });
+    const got = DR.save.unlockRandom(rand);
+    count[got.item.rarity || 'common']++;
+  }
+  assert(count.common > count.rare && count.rare > count.legendary && count.legendary > 0, JSON.stringify(count));
+});
 test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
   DR.save.reset();
   DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));

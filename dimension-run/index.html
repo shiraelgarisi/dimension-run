@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=36">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -69,7 +69,7 @@
         <button id="shopBtn">SHOP <small><span class="coin-icon"></span> <span id="shopCoins">0</span></small></button>
         <button id="wardrobeBtn">WARDROBE <small id="wardrobeCount"></small></button>
         <button id="exitBtn" class="ghost">EXIT</button>
-        <div class="menu-wallet"><span><span class="coin-icon"></span> <b id="menuCoins">0</b></span><span>💎 <b id="menuGems">0</b></span></div>
+        <div class="menu-wallet"><span><span class="coin-icon"></span> <b id="menuCoins">0</b></span><span>💎 <b id="menuGems">0</b></span><span>⭐ <b id="menuStars">0</b></span></div>
       </div>
       <div class="controls touch-controls">
         <div>👆 swipe ← → move</div>
@@ -176,6 +176,7 @@
         <div><small>COINS</small><b id="overCoins">0</b></div>
         <div><small>BEST</small><b id="overBest">0</b></div>
       </div>
+      <div id="oStars" class="stars-row hidden"></div>
       <div id="overNewBest" class="new-best hidden">★ NEW BEST ★</div>
       <button id="continueBtn" class="big gold">CONTINUE</button>
       <p id="overWallet" class="small wallet-line"></p>
@@ -197,6 +198,7 @@
         <div><small>BONUS</small><b id="cBonus">0</b></div>
       </div>
       <div class="total">SCORE <b id="cScore">0</b></div>
+      <div id="cStars" class="stars-row"></div>
       <div id="cNewBest" class="new-best hidden">★ NEW BEST ★</div>
       <div id="cUnlock" class="unlock hidden"></div>
       <button id="nextBtn" class="big">NEXT LEVEL</button>
@@ -218,6 +220,7 @@
         <div><small>COINS</small><b id="vCoins">0</b></div>
         <div><small>BEST TOTAL</small><b id="vTotal">0</b></div>
       </div>
+      <div id="vStars" class="stars-row"></div>
       <div id="vNewBest" class="new-best hidden">★ NEW BEST ★</div>
       <button id="vMenuBtn" class="big">MAIN MENU</button>
       <button id="vLevelsBtn" class="ghost">LEVEL SELECTION</button>
@@ -235,24 +238,24 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=33"></script>
-  <script src="js/util.js?v=33"></script>
-  <script src="js/config.js?v=33"></script>
-  <script src="js/save.js?v=33"></script>
-  <script src="js/track.js?v=33"></script>
-  <script src="js/collision.js?v=33"></script>
-  <script src="js/player.js?v=33"></script>
-  <script src="js/dimension.js?v=33"></script>
-  <script src="js/scoring.js?v=33"></script>
-  <script src="js/sim.js?v=33"></script>
-  <script src="js/autopilot.js?v=33"></script>
-  <script src="js/audio.js?v=33"></script>
-  <script src="js/pets.js?v=33"></script>
-  <script src="js/themes.js?v=33"></script>
-  <script src="js/themes-wild.js?v=33"></script>
-  <script src="js/themes-infinite.js?v=33"></script>
-  <script src="js/world.js?v=33"></script>
-  <script src="js/ui.js?v=33"></script>
-  <script src="js/game.js?v=33"></script>
+  <script src="vendor/three.min.js?v=35"></script>
+  <script src="js/util.js?v=35"></script>
+  <script src="js/config.js?v=35"></script>
+  <script src="js/save.js?v=35"></script>
+  <script src="js/track.js?v=35"></script>
+  <script src="js/collision.js?v=35"></script>
+  <script src="js/player.js?v=35"></script>
+  <script src="js/dimension.js?v=35"></script>
+  <script src="js/scoring.js?v=35"></script>
+  <script src="js/sim.js?v=35"></script>
+  <script src="js/autopilot.js?v=35"></script>
+  <script src="js/audio.js?v=35"></script>
+  <script src="js/pets.js?v=35"></script>
+  <script src="js/themes.js?v=35"></script>
+  <script src="js/themes-wild.js?v=35"></script>
+  <script src="js/themes-infinite.js?v=35"></script>
+  <script src="js/world.js?v=35"></script>
+  <script src="js/ui.js?v=35"></script>
+  <script src="js/game.js?v=35"></script>
 </body>
 </html>

@@ -70,6 +70,7 @@
       $('shopCoins').textContent = save.data.wallet;
       $('menuCoins').textContent = save.data.wallet;
       $('menuGems').textContent = save.data.gems;
+      $('menuStars').textContent = `${save.totalStars()}/${(DR.LEVELS.length + 1) * 3}`;
       $('wardrobeBtn').classList.toggle('has-new', save.data.newItems.length > 0);
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('menuBest').textContent = save.bestTotal();
@@ -82,7 +83,8 @@
       // level 0: the Infinite World, always open
       const inf = document.createElement('button');
       inf.className = 'level-card endless';
-      inf.innerHTML = `<span class="num">∞</span><span class="name">${DR.ENDLESS.name}</span><span class="diff">Endless</span><span class="lbest">Best: ${save.data.endlessBest} m</span>`;
+      const starText = id => [0, 1, 2].map(i => `<b class="${save.starsOf(id) & (1 << i) ? 'on' : ''}">★</b>`).join('');
+      inf.innerHTML = `<span class="num">∞</span><span class="name">${DR.ENDLESS.name}</span><span class="card-stars">${starText(0)}</span><span class="lbest">Best: ${save.data.endlessBest} m</span>`;
       pic(inf, 0);
       inf.addEventListener('click', () => { DR.Sound.click(); pick(0); });
       grid.appendChild(inf);
@@ -97,6 +99,7 @@
           <span class="num">${cfg.id}</span>
           <span class="name">${cfg.name}</span>
           <span class="diff">${cfg.difficulty}</span>
+          ${unlocked ? `<span class="card-stars">${starText(cfg.id)}</span>` : ''}
           ${unlocked ? `<span class="lbest">Best: ${save.best(cfg.id)}</span>` : '<span class="lock">🔒</span><span class="lbest">Finish level ' + (cfg.id - 1) + '</span>'}`;
         b.setAttribute('aria-label', `Level ${cfg.id} ${cfg.name}${unlocked ? '' : ' (locked)'}`);
         if (unlocked) b.addEventListener('click', () => { DR.Sound.click(); pick(cfg.id); });
@@ -114,14 +117,16 @@
         $('giftTitle').textContent = list.length > 1 ? `GIFT ${i + 1} OF ${list.length}` : 'YOU WON A GIFT!';
         $('giftHint').classList.remove('hidden');
         box.className = 'giftbox';
+        box.dataset.rarity = g.rarity || 'common';
         box.parentNode.classList.remove('opened');
+        box.parentNode.dataset.rarity = g.rarity || 'common';
         box.disabled = false;
         item.classList.add('hidden');
         btns.classList.add('hidden');
         $('giftConfetti').innerHTML = '';
         item.querySelector('.ico').textContent = g.item.icon;
         item.querySelector('.nm').textContent = g.item.name;
-        item.querySelector('.slot').textContent = g.slot === 'coins' ? 'FOR THE SHOP' : g.slot === 'gems' ? 'FOR PETS' : 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
+        item.querySelector('.slot').textContent = (DR.RARITY[g.rarity || 'common'].name.toUpperCase()) + ' · ' + (g.slot === 'coins' ? 'FOR THE SHOP' : g.slot === 'gems' ? 'FOR PETS' : 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase()));
         wearBtn.textContent = g.slot === 'pet' ? 'TAKE IT ALONG' : 'WEAR IT NOW';
         wearBtn.disabled = false;
         wearBtn.classList.toggle('hidden', g.slot === 'coins' || g.slot === 'gems');
@@ -201,6 +206,18 @@
       $('tutText').textContent = T[1];
     },
 
+    /** Three stars that light up one by one. mask: earned (bits 1,2,4); gained: earned for the first time. */
+    starsRow(el, mask, gained, labels) {
+      el.innerHTML = labels.map((l, i) => `<div class="star"><span class="s">★</span><small>${l}</small>${gained & (1 << i) ? `<em>+${DR.STARS.reward} 💎</em>` : ''}</div>`).join('');
+      [...el.children].forEach((s, i) => {
+        if (!(mask & (1 << i))) return;
+        setTimeout(() => {
+          s.classList.add('on');
+          if (gained & (1 << i)) { s.classList.add('new'); DR.Sound.shard(); } else DR.Sound.ready();
+        }, 350 + i * 450);
+      });
+    },
+
     /** Boss health bar: name (or null to hide) and health 0..1. */
     bossBar(name, hp) {
       $('bossBar').classList.toggle('hidden', !name);
@@ -248,9 +265,10 @@
           const forSale = !owned && item.price, afford = forSale && save.data.gems >= item.price;
           const b = document.createElement('button');
           const isNew = fresh.has(slot + ':' + item.id);
-          b.className = 'item' + (owned ? '' : forSale ? ' for-sale' + (afford ? ' afford' : '') : ' locked') + (on ? ' on' : '') + (isNew ? ' is-new' : '');
-          if (forSale) b.innerHTML = `<span class="ico">${item.icon}</span><span class="nm">${item.name}</span><span class="price">💎 ${item.price}</span>`;
-          else b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>${isNew ? '<span class="new-badge">NEW</span>' : ''}`;
+          b.className = 'item' + (owned ? '' : forSale ? ' for-sale' + (afford ? ' afford' : '') : ' locked') + (on ? ' on' : '') + (isNew ? ' is-new' : '') + ` r-${item.rarity || 'common'}`;
+          const rar = item.rarity && !item.free ? `<span class="rar">${DR.RARITY[item.rarity].name}</span>` : '';
+          if (forSale) b.innerHTML = `<span class="ico">${item.icon}</span><span class="nm">${item.name}</span>${rar}<span class="price">💎 ${item.price}</span>`;
+          else b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>${owned ? rar : ''}${isNew ? '<span class="new-badge">NEW</span>' : ''}`;
           b.title = owned ? item.name : forSale ? `${item.name}: ${item.price} diamonds` : 'Find it in a treasure chest';
           b.addEventListener('click', () => {
             if (owned) { DR.Sound.click(); equip(slot, item.id); }
@@ -348,6 +366,8 @@
       $('overCoins').textContent = d.coins;
       $('overBest').textContent = d.best;
       $('overNewBest').classList.toggle('hidden', !d.isBest);
+      $('oStars').classList.toggle('hidden', !d.endless);
+      if (d.endless) this.starsRow($('oStars'), d.stars, d.newStars, DR.STARS.endless.map(m => m + ' m'));
       const can = d.wallet >= d.reviveCost;
       $('continueBtn').innerHTML = `CONTINUE <span class="coin-icon"></span> ${d.reviveCost}`;
       $('continueBtn').disabled = !can;
@@ -363,6 +383,7 @@
       $('cBonus').textContent = '+' + d.bonus;
       $('cScore').textContent = d.score;
       $('cNewBest').classList.toggle('hidden', !d.isBest);
+      this.starsRow($('cStars'), d.stars, d.newStars, ['Finish', 'All shards', 'No hits']);
       const nextCfg = DR.LEVELS[d.cfg.id];
       $('cUnlock').classList.toggle('hidden', !d.unlockedNew);
       if (nextCfg && d.unlockedNew) {
@@ -389,6 +410,7 @@
       $('vCoins').textContent = d.coins;
       $('vTotal').textContent = d.total;
       $('vNewBest').classList.toggle('hidden', !d.isBest);
+      this.starsRow($('vStars'), d.stars, d.newStars, ['Finish', 'All shards', 'No hits']);
       this.show('victory');
     },
   };

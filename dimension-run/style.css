@@ -406,3 +406,36 @@ button.item.is-new { border-color: #6cf08a; box-shadow: 0 0 14px rgba(108, 240, 
 .level-card.has-pic .name { margin-top: auto; font-size: 15px; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9); }
 .level-card.has-pic .lbest { margin-top: 0; }
 .level-card.has-pic .diff { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9); }
+
+/* ---------- stars ---------- */
+.stars-row { display: flex; justify-content: center; gap: 16px; margin: 8px 0 4px; }
+.stars-row .star { display: flex; flex-direction: column; align-items: center; min-width: 74px; position: relative; }
+.stars-row .s { font-size: 46px; line-height: 1; color: rgba(255, 255, 255, 0.18); transition: color 0.3s, text-shadow 0.3s, transform 0.3s; }
+.stars-row .star.on .s { color: #ffd84a; text-shadow: 0 0 18px rgba(255, 216, 74, 0.9); animation: starPop 0.5s cubic-bezier(0.3, 1.8, 0.5, 1); }
+.stars-row small { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+.stars-row em { font-style: normal; font-size: 11px; font-weight: 700; color: #bff4ff; opacity: 0; }
+.stars-row .star.new em { animation: fadeIn 0.4s 0.3s forwards; }
+@keyframes starPop { from { transform: scale(0) rotate(-90deg); } }
+.card-stars { font-size: 16px; letter-spacing: 2px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); }
+.card-stars b { color: rgba(255, 255, 255, 0.3); font-weight: 400; }
+.card-stars b.on { color: #ffd84a; }
+
+/* ---------- rarity ---------- */
+button.item.r-rare { border-color: rgba(200, 106, 255, 0.75); }
+button.item.r-legendary { border-color: rgba(255, 200, 58, 0.9); background: linear-gradient(160deg, rgba(255, 200, 58, 0.16), rgba(255, 255, 255, 0.05)); }
+button.item.r-legendary:not(.locked) { box-shadow: 0 0 12px rgba(255, 200, 58, 0.45); }
+button.item .rar { font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+button.item.r-common .rar { color: #6ab8ff; }
+button.item.r-rare .rar { color: #d89aff; }
+button.item.r-legendary .rar { color: #ffd84a; }
+/* gift box colours: blue common, purple rare, gold legendary */
+.giftbox[data-rarity="common"] .body, .giftbox[data-rarity="common"] .lid { background: linear-gradient(160deg, #8ad0ff, #2a7ad8); }
+.giftbox[data-rarity="rare"] .body, .giftbox[data-rarity="rare"] .lid { background: linear-gradient(160deg, #d89aff, #7a2ad8); }
+.giftbox[data-rarity="legendary"] .body, .giftbox[data-rarity="legendary"] .lid { background: linear-gradient(160deg, #fff0a0, #e8a010); }
+.giftbox[data-rarity="legendary"] .body::before, .giftbox[data-rarity="legendary"] .lid::before, .giftbox[data-rarity="legendary"] .bow::before, .giftbox[data-rarity="legendary"] .bow::after { background: linear-gradient(90deg, #ff4d8a, #d81b60); border-color: #ff4d8a; }
+.giftbox[data-rarity="legendary"] { filter: drop-shadow(0 0 22px rgba(255, 200, 58, 0.9)); }
+.giftbox[data-rarity="rare"] { filter: drop-shadow(0 0 16px rgba(200, 106, 255, 0.8)); }
+.gift-stage[data-rarity="legendary"] .gift-item .slot { color: #ffd84a; }
+.gift-stage[data-rarity="rare"] .gift-item .slot { color: #d89aff; }
+.gift-stage[data-rarity="common"] .gift-item .slot { color: #8ad0ff; }
+.panel { overflow-x: hidden; }

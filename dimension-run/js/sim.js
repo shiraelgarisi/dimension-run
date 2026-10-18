@@ -43,6 +43,7 @@
       this.shields = 0;            // crashes you can still survive this run
       this.magnet = false;         // pulls in coins from every lane
       this.revives = 0;
+      this.hits = 0;   // bumps and shield saves (a perfect run has none)
       this.stumbleT = 0;
       this.events = [];
       this.acc = 0;
@@ -145,6 +146,7 @@
           P.lat = P.prevLat;
           if (this.stumbleT > 0) { this._die('stumble'); return; }
           this.stumbleT = STUMBLE_WINDOW;
+          this.hits++;
           this.events.push({ type: 'bounce' });
           continue;
         }
@@ -187,6 +189,7 @@
         this.shields--;
         this.ghostT = DR.GHOST_TIME.shield;
         this.stumbleT = 0;
+        this.hits++;
         this.events.push({ type: 'shield', kind });
         return;
       }

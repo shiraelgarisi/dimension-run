@@ -363,9 +363,10 @@
           Sound.chest(); world.openChest(e.index); UI.flash('w');
           // clothing, coins or diamonds: saved right away, but kept a surprise until the gift box
           const got = save.openChest();
-          if (got.kind === 'item') prizes.push(got);
-          else if (got.kind === 'coins') prizes.push({ slot: 'coins', item: { id: null, icon: '💰', name: got.amount + ' Coins' } });
-          else prizes.push({ slot: 'gems', item: { id: null, icon: got.amount >= 50 ? '💎💎💎' : '💎', name: got.amount + ' Diamonds' } });
+          const tier = (a, small, mid) => (a <= small ? 'common' : a <= mid ? 'rare' : 'legendary');
+          if (got.kind === 'item') prizes.push(Object.assign(got, { rarity: got.item.rarity || 'common' }));
+          else if (got.kind === 'coins') prizes.push({ slot: 'coins', rarity: tier(got.amount, 50, 100), item: { id: null, icon: '💰', name: got.amount + ' Coins' } });
+          else prizes.push({ slot: 'gems', rarity: tier(got.amount, 10, 15), item: { id: null, icon: got.amount >= 50 ? '💎💎💎' : '💎', name: got.amount + ' Diamonds' } });
           UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800);
           break;
         }
@@ -529,11 +530,13 @@
           const meters = Math.floor(sim.player.d);
           const isBest = track.cfg.tutorial ? false : track.cfg.endless ? save.recordEndless(meters) : save.recordScore(level, score);
           if (track.cfg.endless) save.recordScore(0, score);
+          const eStars = track.cfg.endless ? DR.STARS.endless.reduce((m, d, i) => m | (meters >= d ? 1 << i : 0), 0) : 0;
+          const eNew = track.cfg.endless ? save.addStars(0, eStars) : 0;
           save.write();
           UI.hud(false);
           const over = {
             cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest,
-            wallet: save.data.wallet, reviveCost: reviveCost(), endless: !!track.cfg.endless, meters, bestMeters: save.data.endlessBest,
+            wallet: save.data.wallet, reviveCost: reviveCost(), endless: !!track.cfg.endless, meters, bestMeters: save.data.endlessBest, stars: eStars, newStars: eNew,
           };
           mode = 'result';
           openGifts(() => UI.gameOver(over));
@@ -571,14 +574,16 @@
     UI.vignette(false);
     mode = 'result';
     const unlockedNew = save.data.unlocked > wasUnlocked;
+    const starMask = 1 | (s.shards >= track.shards.length ? 2 : 0) | (sim.hits === 0 && sim.revives === 0 ? 4 : 0);
+    const newStars = save.addStars(level, starMask);
     const nextThumb = thumbs[level + 1];
     openGifts(() => {
       if (track.cfg.final) {
-        UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest });
+        UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest, stars: starMask, newStars });
       } else {
         UI.complete({
           cfg: track.cfg, distance: track.length, coins: s.coins, shards: s.shards, totalShards: track.shards.length,
-          bonus: s.bonus, score: s.score, isBest, unlockedNew, nextThumb,
+          bonus: s.bonus, score: s.score, isBest, unlockedNew, nextThumb, stars: starMask, newStars,
         });
       }
     });

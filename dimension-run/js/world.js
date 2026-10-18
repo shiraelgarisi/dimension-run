@@ -847,6 +847,7 @@
       if (this.pet) R.petSlot.add(this.pet.g);
       this.backAnim = null;
       const o = find('outfit', eq.outfit);
+      this.legendary = Object.keys(eq).some(slot => DR.COSMETICS[slot] && (find(slot, eq[slot]).rarity === 'legendary'));
       this.shirtMat.color.setHex(o.shirt); this.pantsMat.color.setHex(o.pants); this.scarfBase.setHex(o.scarf);
       this._outfitDetails(o.id, X);
       const gold = X.std(0xffcf3a, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a00 });
@@ -1423,6 +1424,11 @@
         this.magnetFx.children.forEach((r, k) => { const u = (t * 1.2 + k * 0.5) % 1; r.scale.setScalar(0.6 + u * 1.6); r.material.opacity = 0.6 * (1 - u); });
       }
       if (this.backAnim) this.backAnim(t, running ? 1 : 0);
+      // wearing something legendary leaves a trail of golden sparkles
+      if (this.legendary && running && dt > 0 && rnd() < 0.6) {
+        const p = new THREE.Vector3(x + (rnd() - 0.5) * 0.5, y + 0.4 + rnd() * 1.2, z + 0.5);
+        this.burst(p, rnd() < 0.5 ? 0xffd84a : 0xfff4b0, 1, { speed: 0.6, up: 0.4, life: 0.6, size: 0.8, grav: -0.5 });
+      }
       if (this.pet) DR.pets.animate(this.pet, t, running && P.grounded ? 1 : 0, R.phase);
       R.shadow.position.set(x, 0.03, z);
       R.shadow.visible = !P.falling && R.scale > 0.2;
