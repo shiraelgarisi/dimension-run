@@ -359,6 +359,21 @@ test('Infinite World: never ends, speeds up, stays fair', () => {
   assert(sim.state === 'running', `crashed at ${sim.player.d.toFixed(0)} m (${sim.deathKind})`);
   assert(tr.chests.length > 20 && tr.gems.length > 30, 'treasure all along the way');
 });
+test('tutorial: slide, jump, sideways, switch worlds, in that order, then the finish', () => {
+  const tr = DR.track.generate(DR.TUTORIAL);
+  const lessons = tr.rows.filter(r => r.need).map(r => r.need);
+  assert(JSON.stringify(lessons) === JSON.stringify(['slide', 'jump', 'side', 'switch']), lessons.join(','));
+  assert(tr.rows.filter(r => r.kind !== 'finish').length === 4, 'nothing but the lessons');
+  const sim = play(tr, 0, 1);
+  assert(sim.state === 'finished', 'the tutorial can be finished');
+  DR.save.reset();
+  memStore['dimensionRun.save'] = JSON.stringify({ unlocked: 3 });
+  DR.save.load();
+  assert(DR.save.data.tutorialDone, 'players with progress skip the tutorial');
+  memStore['dimensionRun.save'] = JSON.stringify({ unlocked: 1 });
+  DR.save.load();
+  assert(!DR.save.data.tutorialDone, 'new players get it');
+});
 test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
   DR.save.reset();
   DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));

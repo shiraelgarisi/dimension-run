@@ -293,6 +293,31 @@
   };
   DR.GEM_VALUE = 5;   // a diamond lying on the path
 
+  // The first game ever is a guided tutorial: the run stops before each obstacle until
+  // you make the right move (slide, jump, sideways, switch worlds). `need` names the move.
+  DR.TUTORIAL = {
+    id: 1,
+    tutorial: true,
+    name: 'Tutorial',
+    subtitle: 'Learn the moves',
+    difficulty: 'Tutorial',
+    seed: 77,
+    length: 470,
+    speed: [12, 12],
+    cooldown: 0,
+    rowTime: [30, 30],          // nothing but the four lessons
+    patterns: { lane: 1 },
+    coinRate: 0.6,
+    shards: 0, chests: 0, gems: 0,
+    instability: 0,
+    intro: [
+      { at: 95, pattern: 'tutSlide', hint: 'An arch ahead... get ready', need: 'slide' },
+      { at: 175, pattern: 'tutJump', hint: 'A log ahead... get ready', need: 'jump' },
+      { at: 255, pattern: 'tutLane', hint: 'A rock in your way... get ready', need: 'side' },
+      { at: 345, pattern: 'tutWallLight', hint: 'A wall! There is no way around it...', need: 'switch' },
+    ],
+  };
+
   // Level 0: the Infinite World. It never ends: speed keeps rising until you crash.
   DR.ENDLESS = {
     id: 0,

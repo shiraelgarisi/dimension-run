@@ -20,6 +20,7 @@
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
   let bossHits = 0;
+  let tut = null;   // the guided tutorial: { then: level to play next, done: Set of rows, waiting: row or null }
   let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
   let countdownStep = -1, milestone = 0, finaleShown = false, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
 
@@ -33,9 +34,9 @@
     try { return DR.track.generate(cfg, seed); } catch (e) { return getTrack(n); }   // never expected, but never stuck
   }
 
-  function loadLevel(n, fresh) {
+  function loadLevel(n, fresh, cfg) {
     level = n;
-    track = fresh ? randomTrack(n) : getTrack(n);
+    track = cfg ? DR.track.generate(cfg) : fresh ? randomTrack(n) : getTrack(n);
     sim = new DR.Sim(track);
     world.buildLevel(track);
     world.runner.scale = 1;
@@ -123,10 +124,14 @@
   function startLevel(n) {
     if (!save.isUnlocked(n)) return;
     Sound.init();
-    loadLevel(n, true);
-    // power-ups from the shop are used up at the start of a run
-    sim.shields = save.useItem('shield') ? 1 : 0;
-    sim.magnet = save.useItem('magnet');
+    // the very first game is the guided tutorial; after it, whatever level was picked
+    const tutorial = !save.data.tutorialDone && !TEST && !AUTOPILOT;
+    loadLevel(n, true, tutorial ? DR.TUTORIAL : null);
+    tut = tutorial ? { then: n, done: new Set(), waiting: null } : null;
+    UI.tutorial(null);
+    // power-ups from the shop are used up at the start of a run (not in the tutorial)
+    sim.shields = !tutorial && save.useItem('shield') ? 1 : 0;
+    sim.magnet = !tutorial && save.useItem('magnet');
     bot = AUTOPILOT ? new DR.Autopilot(track) : null;
     setMode('countdown');
     countdownStep = -1;
@@ -135,7 +140,7 @@
     prizes = [];
     setWarpClass(null);
     finaleShown = false;
-    document.body.dataset.level = String(n);
+    document.body.dataset.level = String(track.cfg.id);
     victoryFx = false;
     UI.show(null);
     UI.hud(true);
@@ -145,9 +150,10 @@
     UI.bossBar(track.cfg.boss ? track.cfg.boss.name : null, 1);
     UI.vignette(false);
     Sound.setIntensity(0);
-    Sound.setSong(n);
+    Sound.setSong(track.cfg.id);
     Sound.musicStart();
-    if (track.cfg.endless) UI.banner('∞ INFINITE WORLD<small>HOW FAR CAN YOU GO?</small>', '', 1300);
+    if (tut) UI.banner('TUTORIAL<small>LET\'S LEARN THE MOVES</small>', '', 1600);
+    else if (track.cfg.endless) UI.banner('∞ INFINITE WORLD<small>HOW FAR CAN YOU GO?</small>', '', 1300);
     else UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small><small class="theme">${world.themeName.toUpperCase()}</small>`, '', 1100);
     UI.flash('w');
   }
@@ -189,6 +195,7 @@
     wardrobeWorld: toggleWardrobeWorld,
     exit: exitGame,
     menu: toMenu,
+    info: () => UI.show('info'),
     resetProgress: () => { save.reset(); showLevels(); UI.renderMenu(save, 1); },
     resume,
     pause: () => (mode === 'paused' ? resume() : pause()),
@@ -203,6 +210,17 @@
   // input
   // ------------------------------------------------------------------
   const GAME_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '];
+  const NEED_OF = { left: 'side', right: 'side', jump: 'jump', slide: 'slide', switchWorld: 'switch' };
+  function act(move) {
+    if (mode !== 'play' || bot) return;
+    if (tut) {
+      // near a lesson, only the move being taught is allowed, and only once the run has stopped for it
+      if (tut.waiting) { if (NEED_OF[move] !== tut.waiting.need) return; }
+      else if (tutNext() && tutNext().d - sim.player.d < sim.speed * 4.5) return;
+    }
+    sim[move]();
+  }
+  function tutNext() { return tut && track.rows.find(r => r.need && !tut.done.has(r)); }
   window.addEventListener('keydown', e => {
     const k = e.key;
     Sound.init();
@@ -213,11 +231,11 @@
       if (k === 'Escape' || k === 'p' || k === 'P') { pause(); return; }
       if (mode !== 'play' || bot || e.repeat) return;
       switch (k) {
-        case 'ArrowLeft': case 'a': case 'A': sim.left(); break;
-        case 'ArrowRight': case 'd': case 'D': sim.right(); break;
-        case 'ArrowUp': case 'w': case 'W': sim.jump(); break;
-        case 'ArrowDown': case 's': case 'S': sim.slide(); break;
-        case ' ': sim.switchWorld(); break;
+        case 'ArrowLeft': case 'a': case 'A': act('left'); break;
+        case 'ArrowRight': case 'd': case 'D': act('right'); break;
+        case 'ArrowUp': case 'w': case 'W': act('jump'); break;
+        case 'ArrowDown': case 's': case 'S': act('slide'); break;
+        case ' ': act('switchWorld'); break;
       }
       return;
     }
@@ -259,7 +277,7 @@
     if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE) return;
     touch.done = true;   // act as soon as the swipe is clear: no waiting for the finger to lift
     if (mode !== 'play' || bot) return;
-    if (Math.abs(dx) > Math.abs(dy)) (dx < 0 ? sim.left() : sim.right());
+    if (Math.abs(dx) > Math.abs(dy)) act(dx < 0 ? 'left' : 'right');
     else (dy < 0 ? sim.jump() : sim.slide());
   }, { passive: false });
   window.addEventListener('touchend', e => {
@@ -269,13 +287,13 @@
     const tap = !touch.done && performance.now() - touch.t < TAP_MS;
     touch = null;
     if (inGame()) e.preventDefault();
-    if (tap && mode === 'play' && !bot) sim.switchWorld();
+    if (tap) act('switchWorld');
   }, { passive: false });
   window.addEventListener('touchcancel', () => { touch = null; });
   // the world orb is a button too
   document.getElementById('dimension').addEventListener('pointerdown', e => {
     e.stopPropagation();
-    if (mode === 'play' && !bot) sim.switchWorld();
+    act('switchWorld');
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('blur', () => pause());
@@ -283,13 +301,23 @@
   // ------------------------------------------------------------------
   // gameplay events -> sound, visuals, UI
   // ------------------------------------------------------------------
+  function tutDid(need) {
+    if (!tut || !tut.waiting || tut.waiting.need !== need) return;
+    tut.done.add(tut.waiting);
+    tut.waiting = null;
+    UI.tutorial(null);
+    Sound.ready();
+    world.burst(world.playerPos(1.2), 0x6cf08a, 18, { speed: 6, up: 3, life: 0.6 });
+    UI.banner(tut.done.size < 4 ? 'GREAT!' : 'PERFECT!<small>YOU KNOW ALL THE MOVES</small>', 'milestone', 700);
+  }
+
   function handleEvents() {
     for (const e of sim.events) {
       switch (e.type) {
-        case 'jump': Sound.jump(); break;
-        case 'slide': Sound.slide(); break;
-        case 'move': Sound.move(); break;
-        case 'switch': Sound.switchTo(e.world); world.switchFx(e.world); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
+        case 'jump': Sound.jump(); tutDid('jump'); break;
+        case 'slide': Sound.slide(); tutDid('slide'); break;
+        case 'move': Sound.move(); tutDid('side'); break;
+        case 'switch': tutDid('switch'); Sound.switchTo(e.world); world.switchFx(e.world); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
         case 'switchDenied': Sound.denied(); UI.denied(); break;
         case 'ready': if (track.cfg.cooldown > 0) Sound.ready(); break;
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
@@ -417,10 +445,14 @@
         break;
       }
       case 'play': {
-        sim.update(dt * sim.timeScale, bot ? s => bot.tick(s) : null);
+        if (tut && !tut.waiting) {
+          const row = tutNext();
+          if (row && row.d - row.depth / 2 - sim.player.d < sim.speed * 0.45) { tut.waiting = row; UI.tutorial(row.need, UI.touch); UI.hint(''); }
+        }
+        sim.update(tut && tut.waiting ? 0 : dt * sim.timeScale, bot ? s => bot.tick(s) : null);
         handleEvents();
         if (mode !== 'play') break;
-        UI.hint(currentHint() || padHint());
+        if (!(tut && tut.waiting)) UI.hint(currentHint() || padHint());
         // the boss weakens as you get closer to the end, and more with every shard hit
         if (track.cfg.boss) {
           const hp = Math.max(0.04, 1 - sim.progress * 0.85 - bossHits * track.cfg.boss.hitPerShard);
@@ -465,7 +497,7 @@
         if (modeT > 1.4) {
           const score = sim.scoring.score;
           const meters = Math.floor(sim.player.d);
-          const isBest = track.cfg.endless ? save.recordEndless(meters) : save.recordScore(level, score);
+          const isBest = track.cfg.tutorial ? false : track.cfg.endless ? save.recordEndless(meters) : save.recordScore(level, score);
           if (track.cfg.endless) save.recordScore(0, score);
           save.write();
           UI.hud(false);
@@ -479,6 +511,11 @@
         break;
       case 'finish':
         sim.update(dt);
+        if (tut) {   // tutorial finished: from now on you play on your own
+          if (modeT - dt <= 0) UI.banner('YOU\'RE READY! 🎉<small>NOW YOU PLAY ON YOUR OWN</small>', 'treasure', 2000);
+          if (modeT > 2.2) { save.data.tutorialDone = true; save.write(); const n = tut.then; tut = null; startLevel(n); }
+          break;
+        }
         if (modeT > 2.3) showComplete();
         break;
       case 'victory':

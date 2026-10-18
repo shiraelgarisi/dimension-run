@@ -286,6 +286,7 @@
         d, t, kind, depth, cells: step.cells,
         zoneT: (depth / 2 + 0.4) / speedAt(cfg, d),
         hint: step.hint || null,
+        need: step.need || null,   // tutorial: the move this row teaches
       };
     }
 
@@ -326,7 +327,7 @@
 
     // scripted introductions first
     for (const it of cfg.intro || []) {
-      const steps = PATTERNS[it.pattern](r, ctx).map((s, i) => Object.assign({}, s, i === 0 ? { at: it.at, hint: it.hint } : {}));
+      const steps = PATTERNS[it.pattern](r, ctx).map((s, i) => Object.assign({}, s, i === 0 ? { at: it.at, hint: it.hint, need: it.need } : {}));
       const res = tryPlace(steps, it.pattern, 0);
       if (res !== 'ok') throw new Error(`Level ${level}: intro "${it.pattern}" is not solvable (${res})`);
     }

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=29">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -52,11 +52,13 @@
   </div>
 
   <div id="hint" class="hidden"></div>
+  <div id="tutor" class="tutor hidden"><div id="tutArrow">⬇</div><div id="tutText"></div></div>
   <div id="banner" class="hidden"></div>
 
   <!-- ===== Main menu ===== -->
   <div id="menu" class="screen">
     <div class="panel title-panel">
+      <button id="infoBtn" class="info-btn" title="How to play" aria-label="How to play">i</button>
       <h1 class="logo"><span class="l">DIMENSION</span><span class="d">RUN</span></h1>
       <p class="tag">Two worlds. One path. Switch to survive.</p>
       <div class="menu-buttons">
@@ -131,6 +133,16 @@
     </div>
   </div>
 
+  <!-- ===== How to play ===== -->
+  <div id="info" class="screen hidden">
+    <div class="panel wide info-panel">
+      <h2>HOW TO PLAY</h2>
+      <svg width="0" height="0" style="position:absolute"><defs><marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ffcf3a"/></marker></defs></svg>
+      <div class="info-grid"><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M30 98 L62 20 L98 20 L130 98 Z" fill="#c8a878"/><path d="M73 20 L63 98 M87 20 L97 98" stroke="#8a6a4a" stroke-width="1.5"/><rect x="72" y="40" width="16" height="18" rx="3" fill="#8f8478"/><g transform="translate(110,92)"><rect x="-7" y="-30" width="14" height="16" rx="2" fill="#f2f2f2"/><rect x="-7" y="-34" width="14" height="5" fill="#ffb020"/><rect x="-6" y="-46" width="12" height="12" rx="2" fill="#e8b98f"/><rect x="-6" y="-48" width="12" height="4" fill="#3a2414"/><rect x="-6" y="-14" width="5" height="14" fill="#34405e"/><rect x="1" y="-14" width="5" height="14" fill="#34405e"/></g><path d="M70 80 L100 80" stroke="#ffcf3a" stroke-width="4" marker-end="url(#ah)"/></svg><h3>Move left and right</h3><p>Swipe ← → (or press ← → / A D) to change lanes and dodge blocks.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M30 98 L62 20 L98 20 L130 98 Z" fill="#c8a878"/><path d="M73 20 L63 98 M87 20 L97 98" stroke="#8a6a4a" stroke-width="1.5"/><rect x="58" y="72" width="44" height="9" rx="4" fill="#7a4a26"/><g transform="translate(80,58)"><rect x="-7" y="-30" width="14" height="16" rx="2" fill="#f2f2f2"/><rect x="-7" y="-34" width="14" height="5" fill="#ffb020"/><rect x="-6" y="-46" width="12" height="12" rx="2" fill="#e8b98f"/><rect x="-6" y="-48" width="12" height="4" fill="#3a2414"/><rect x="-6" y="-14" width="5" height="14" fill="#34405e"/><rect x="1" y="-14" width="5" height="14" fill="#34405e"/></g><path d="M80 98 L80 70" stroke="#ffcf3a" stroke-width="4" marker-end="url(#ah)" transform="translate(40,0)"/></svg><h3>Jump</h3><p>Swipe ↑ (or press ↑ / W) to jump over logs, spikes and holes.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M30 98 L62 20 L98 20 L130 98 Z" fill="#c8a878"/><path d="M73 20 L63 98 M87 20 L97 98" stroke="#8a6a4a" stroke-width="1.5"/><rect x="55" y="45" width="5" height="45" fill="#8a5a2e"/><rect x="100" y="45" width="5" height="45" fill="#8a5a2e"/><rect x="55" y="45" width="50" height="8" fill="#8a5a2e"/><g transform="translate(80,92) rotate(-70)"><rect x="-7" y="-30" width="14" height="16" fill="#f2f2f2"/><rect x="-6" y="-46" width="12" height="12" fill="#e8b98f"/><rect x="-6" y="-14" width="12" height="14" fill="#34405e"/></g><path d="M130 40 L130 70" stroke="#ffcf3a" stroke-width="4" marker-end="url(#ah)"/></svg><h3>Slide</h3><p>Swipe ↓ (or press ↓ / S) to slide under arches and beams.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><rect x="0" y="0" width="80" height="100" fill="#bfe8ff"/><rect x="80" y="0" width="80" height="100" fill="#1d0c3a"/><circle cx="22" cy="20" r="10" fill="#ffd84a"/><circle cx="140" cy="20" r="9" fill="#e8d8ff"/><circle cx="144" cy="17" r="8" fill="#1d0c3a"/><rect x="20" y="55" width="45" height="22" fill="#8f8478"/><text x="42" y="92" font-size="10" text-anchor="middle" fill="#333">blocked</text><rect x="95" y="55" width="45" height="22" fill="none" stroke="#b04dff" stroke-dasharray="3 3"/><text x="118" y="92" font-size="10" text-anchor="middle" fill="#e8d8ff">open!</text><text x="80" y="58" font-size="20" text-anchor="middle" fill="#fff">⇄</text></svg><h3>Switch worlds</h3><p>Tap the screen (or press SPACE) to jump between the Light and Dark worlds. A wall in one world can be open in the other!</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M30 98 L62 20 L98 20 L130 98 Z" fill="#c8a878"/><path d="M73 20 L63 98 M87 20 L97 98" stroke="#8a6a4a" stroke-width="1.5"/><rect x="58" y="40" width="18" height="20" rx="3" fill="#8f8478"/><rect x="84" y="40" width="18" height="20" rx="3" fill="#b04dff" opacity="0.3"/><g transform="translate(80,92)"><rect x="-7" y="-30" width="14" height="16" rx="2" fill="#f2f2f2"/><rect x="-7" y="-34" width="14" height="5" fill="#ffb020"/><rect x="-6" y="-46" width="12" height="12" rx="2" fill="#e8b98f"/><rect x="-6" y="-48" width="12" height="4" fill="#3a2414"/><rect x="-6" y="-14" width="5" height="14" fill="#34405e"/><rect x="1" y="-14" width="5" height="14" fill="#34405e"/></g></svg><h3>See-through shapes</h3><p>Faint shapes are obstacles in the OTHER world. Check them before you switch!</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><circle cx="35" cy="50" r="16" fill="#ffcf3a" stroke="#b07a00" stroke-width="3"/><text x="80" y="58" font-size="22" text-anchor="middle">➜</text><text x="125" y="62" font-size="32" text-anchor="middle">🛡️</text></svg><h3>Coins and the shop</h3><p>Coins are saved. Spend them to keep going after a crash, or buy a 🛡️ shield or 🧲 magnet in the SHOP.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M35 30 L50 50 L35 78 L20 50 Z" fill="#7ae8ff" stroke="#fff" stroke-width="2"/><text x="80" y="58" font-size="22" text-anchor="middle">➜</text><text x="125" y="64" font-size="36" text-anchor="middle">🐶</text></svg><h3>Diamonds and pets</h3><p>Diamonds hide in chests and off the safe path. Buy pets with them in the WARDROBE.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><rect x="20" y="45" width="44" height="30" rx="4" fill="#8a5a2a"/><rect x="18" y="38" width="48" height="12" rx="4" fill="#a06a32"/><rect x="38" y="44" width="8" height="10" fill="#ffcf3a"/><rect x="38" y="0" width="8" height="38" fill="#ffe066" opacity="0.4"/><text x="88" y="64" font-size="22" text-anchor="middle">➜</text><text x="130" y="68" font-size="36" text-anchor="middle">🎁</text></svg><h3>Treasure chests</h3><p>Grab chests (look for the light beam). At the end of the run, open the gift box: clothes, coins or diamonds!</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M30 98 L62 20 L98 20 L130 98 Z" fill="#c8a878"/><path d="M73 20 L63 98 M87 20 L97 98" stroke="#8a6a4a" stroke-width="1.5"/><path d="M63 60 L79 60 L79 85 L59 85 Z" fill="#3affc0" opacity="0.8"/><path d="M81 60 L97 60 L101 85 L81 85 Z" fill="#c86aff" opacity="0.8"/></svg><h3>Time pads (Time Rift)</h3><p>Green pads speed time up for double points. Purple pads slow time down.</p></div><div class="info-card"><svg viewBox="0 0 160 100" aria-hidden="true"><path d="M80 50 C60 20, 30 20, 30 50 C30 80, 60 80, 80 50 C100 20, 130 20, 130 50 C130 80, 100 80, 80 50 Z" fill="none" stroke="#b07aff" stroke-width="7"/></svg><h3>Infinite World ∞</h3><p>Level 0 never ends. It keeps getting faster: how far can you go?</p></div></div>
+      <button id="infoBack" class="big">GOT IT!</button>
+    </div>
+  </div>
+
   <!-- ===== Shop ===== -->
   <div id="shop" class="screen hidden">
     <div class="panel">
@@ -147,6 +159,7 @@
       <h2>PAUSED</h2>
       <button id="resumeBtn" class="big">RESUME</button>
       <button id="restartBtn">RESTART LEVEL</button>
+      <button id="pauseInfoBtn">HOW TO PLAY</button>
       <button id="pauseMenuBtn" class="ghost">MAIN MENU</button>
     </div>
   </div>
@@ -221,24 +234,24 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=27"></script>
-  <script src="js/util.js?v=27"></script>
-  <script src="js/config.js?v=27"></script>
-  <script src="js/save.js?v=27"></script>
-  <script src="js/track.js?v=27"></script>
-  <script src="js/collision.js?v=27"></script>
-  <script src="js/player.js?v=27"></script>
-  <script src="js/dimension.js?v=27"></script>
-  <script src="js/scoring.js?v=27"></script>
-  <script src="js/sim.js?v=27"></script>
-  <script src="js/autopilot.js?v=27"></script>
-  <script src="js/audio.js?v=27"></script>
-  <script src="js/pets.js?v=27"></script>
-  <script src="js/themes.js?v=27"></script>
-  <script src="js/themes-wild.js?v=27"></script>
-  <script src="js/themes-infinite.js?v=27"></script>
-  <script src="js/world.js?v=27"></script>
-  <script src="js/ui.js?v=27"></script>
-  <script src="js/game.js?v=27"></script>
+  <script src="vendor/three.min.js?v=29"></script>
+  <script src="js/util.js?v=29"></script>
+  <script src="js/config.js?v=29"></script>
+  <script src="js/save.js?v=29"></script>
+  <script src="js/track.js?v=29"></script>
+  <script src="js/collision.js?v=29"></script>
+  <script src="js/player.js?v=29"></script>
+  <script src="js/dimension.js?v=29"></script>
+  <script src="js/scoring.js?v=29"></script>
+  <script src="js/sim.js?v=29"></script>
+  <script src="js/autopilot.js?v=29"></script>
+  <script src="js/audio.js?v=29"></script>
+  <script src="js/pets.js?v=29"></script>
+  <script src="js/themes.js?v=29"></script>
+  <script src="js/themes-wild.js?v=29"></script>
+  <script src="js/themes-infinite.js?v=29"></script>
+  <script src="js/world.js?v=29"></script>
+  <script src="js/ui.js?v=29"></script>
+  <script src="js/game.js?v=29"></script>
 </body>
 </html>

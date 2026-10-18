@@ -4,7 +4,7 @@
   'use strict';
   const DR = window.DR;
   const $ = id => document.getElementById(id);
-  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'gift', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'gift', 'info', 'pause', 'over', 'complete', 'victory', 'exit'];
   const RING = 2 * Math.PI * 28;
 
   let hintText = '', bannerTimer = null, lastHud = {};
@@ -15,6 +15,9 @@
       on('startBtn', h.start);
       on('levelsBtn', h.levels);
       on('wardrobeBtn', h.wardrobe);
+      on('infoBtn', h.info);
+      on('pauseInfoBtn', () => { this.infoFrom = 'pause'; h.info(); });
+      on('infoBack', () => { const from = this.infoFrom || 'menu'; this.infoFrom = null; this.show(from); });
       on('shopBtn', h.shop);
       on('shopBack', h.menu);
       $('continueBtn').addEventListener('click', () => h.continueRun());
@@ -146,6 +149,23 @@
       one();
     },
 
+    /** Tutorial: the big arrow that says which move to make (null hides it). */
+    tutorial(need, touch) {
+      const box = $('tutor');
+      box.classList.toggle('hidden', !need);
+      $('dimension').classList.toggle('teach', need === 'switch');
+      if (!need) return;
+      const T = {
+        slide: ['⬇', touch ? 'Swipe DOWN to slide' : 'Press ↓ to slide', 'down'],
+        jump: ['⬆', touch ? 'Swipe UP to jump' : 'Press ↑ to jump', 'up'],
+        side: ['⬅ ➡', touch ? 'Swipe LEFT or RIGHT' : 'Press ← or →', 'side'],
+        switch: ['☀ ☾', touch ? 'TAP the screen to switch worlds!' : 'Press SPACE to switch worlds!', 'switch'],
+      }[need];
+      box.className = 'tutor ' + T[2];
+      $('tutArrow').textContent = T[0];
+      $('tutText').textContent = T[1];
+    },
+
     /** Boss health bar: name (or null to hide) and health 0..1. */
     bossBar(name, hp) {
       $('bossBar').classList.toggle('hidden', !name);
@@ -210,7 +230,7 @@
     },
 
     startLevel(cfg, best) {
-      $('levelName').textContent = cfg.endless ? `∞ · ${cfg.name}` : `Level ${cfg.id} · ${cfg.name}`;
+      $('levelName').textContent = cfg.tutorial ? 'Tutorial' : cfg.endless ? `∞ · ${cfg.name}` : `Level ${cfg.id} · ${cfg.name}`;
       $('hudBest').textContent = best;
       $('shards').classList.add('hidden');
       lastHud = {};
