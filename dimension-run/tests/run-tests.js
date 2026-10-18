@@ -396,6 +396,35 @@ test('rarity: every item has one, and legendary items drop least often', () => {
   }
   assert(count.common > count.rare && count.rare > count.legendary && count.legendary > 0, JSON.stringify(count));
 });
+test('daily reward: one a day, the streak climbs to 7 and starts over, a missed day resets it', () => {
+  DR.save.reset();
+  DR.save.data.daily = { last: '', streak: 0 };
+  const c0 = DR.save.data.wallet;
+  let r = DR.save.claimDaily('2026-10-01');
+  assert(r.day === 1 && DR.save.data.wallet === c0 + 50, 'day 1: coins');
+  assert(DR.save.claimDaily('2026-10-01') === null, 'only once a day');
+  const days = ['2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05', '2026-10-06', '2026-10-07'];
+  for (const d of days) r = DR.save.claimDaily(d);
+  assert(r.day === 7 && r.gift, 'day 7 is a mystery gift');
+  assert(DR.save.claimDaily('2026-10-08').day === 1, 'after day 7 it starts over');
+  const st = DR.save.dailyStatus('2026-10-11');
+  assert(st.available && st.day === 1 && st.broken, 'a missed day resets the streak');
+});
+test('daily missions: three different ones a day, progress pays the reward, all three unlock a gift', () => {
+  DR.save.reset();
+  const a = DR.save.ensureMissions('2026-10-20').list.map(m => m.type);
+  assert(new Set(a).size === 3, 'three different missions');
+  DR.save.data.missions.date = '';
+  assert(JSON.stringify(DR.save.ensureMissions('2026-10-20').list.map(m => m.type)) === JSON.stringify(a), 'the same three all day');
+  const gems0 = DR.save.data.gems, coins0 = DR.save.data.wallet;
+  for (const m of DR.save.data.missions.list) {
+    const def = DR.save.missionDef(m);
+    assert(DR.save.missionProgress(m.type, def.max ? m.target : m.target - 1).length === (def.max ? 1 : 0));
+    if (!def.max) assert(DR.save.missionProgress(m.type, 5).length === 1, 'finished ' + m.type);
+  }
+  assert(DR.save.data.gems + DR.save.data.wallet > gems0 + coins0, 'rewards paid');
+  assert(DR.save.data.missions.bonus === 'ready' && DR.save.claimMissionBonus() && DR.save.claimMissionBonus() === null);
+});
 test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
   DR.save.reset();
   DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));

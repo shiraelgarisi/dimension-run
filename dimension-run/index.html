@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=37">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -66,6 +66,7 @@
         <button id="startBtn" class="big">START GAME</button>
         <div id="startInfo" class="sub">Level 1 · The Beginning</div>
         <button id="levelsBtn">LEVEL SELECTION</button>
+        <button id="missionsBtn">MISSIONS <small id="missionsCount"></small></button>
         <button id="shopBtn">SHOP <small><span class="coin-icon"></span> <span id="shopCoins">0</span></small></button>
         <button id="wardrobeBtn">WARDROBE <small id="wardrobeCount"></small></button>
         <button id="exitBtn" class="ghost">EXIT</button>
@@ -144,6 +145,28 @@
     </div>
   </div>
 
+  <!-- ===== Daily reward ===== -->
+  <div id="daily" class="screen hidden">
+    <div class="panel wide daily-panel">
+      <h2>DAILY REWARD</h2>
+      <div id="dailyTitle" class="daily-title"></div>
+      <div id="dailyTrack" class="daily-track"></div>
+      <p id="dailyNote" class="small"></p>
+      <button id="dailyClaim" class="big gold">CLAIM</button>
+    </div>
+  </div>
+
+  <!-- ===== Daily missions ===== -->
+  <div id="missions" class="screen hidden">
+    <div class="panel">
+      <h2>DAILY MISSIONS</h2>
+      <p id="missionTimer" class="small"></p>
+      <div id="missionList"></div>
+      <div id="missionBonus"></div>
+      <button id="missionsBack">BACK</button>
+    </div>
+  </div>
+
   <!-- ===== Shop ===== -->
   <div id="shop" class="screen hidden">
     <div class="panel">
@@ -170,6 +193,7 @@
     <div class="panel">
       <h2 class="danger">GAME OVER</h2>
       <p id="deathMsg" class="msg"></p>
+      <div id="overPush" class="push hidden"></div>
       <div class="reached">Reached <b id="overPct">0%</b> of <span id="overLevel"></span></div>
       <div class="stats">
         <div><small>SCORE</small><b id="overScore">0</b></div>
@@ -180,7 +204,7 @@
       <div id="overNewBest" class="new-best hidden">★ NEW BEST ★</div>
       <button id="continueBtn" class="big gold">CONTINUE</button>
       <p id="overWallet" class="small wallet-line"></p>
-      <button id="retryBtn" class="big">RETRY</button>
+      <button id="retryBtn" class="big again">▶ PLAY AGAIN</button>
       <button id="overMenuBtn" class="ghost">MAIN MENU</button>
       <p class="small key-only">Enter to retry</p>
     </div>
@@ -238,24 +262,24 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=35"></script>
-  <script src="js/util.js?v=35"></script>
-  <script src="js/config.js?v=35"></script>
-  <script src="js/save.js?v=35"></script>
-  <script src="js/track.js?v=35"></script>
-  <script src="js/collision.js?v=35"></script>
-  <script src="js/player.js?v=35"></script>
-  <script src="js/dimension.js?v=35"></script>
-  <script src="js/scoring.js?v=35"></script>
-  <script src="js/sim.js?v=35"></script>
-  <script src="js/autopilot.js?v=35"></script>
-  <script src="js/audio.js?v=35"></script>
-  <script src="js/pets.js?v=35"></script>
-  <script src="js/themes.js?v=35"></script>
-  <script src="js/themes-wild.js?v=35"></script>
-  <script src="js/themes-infinite.js?v=35"></script>
-  <script src="js/world.js?v=35"></script>
-  <script src="js/ui.js?v=35"></script>
-  <script src="js/game.js?v=35"></script>
+  <script src="vendor/three.min.js?v=37"></script>
+  <script src="js/util.js?v=37"></script>
+  <script src="js/config.js?v=37"></script>
+  <script src="js/save.js?v=37"></script>
+  <script src="js/track.js?v=37"></script>
+  <script src="js/collision.js?v=37"></script>
+  <script src="js/player.js?v=37"></script>
+  <script src="js/dimension.js?v=37"></script>
+  <script src="js/scoring.js?v=37"></script>
+  <script src="js/sim.js?v=37"></script>
+  <script src="js/autopilot.js?v=37"></script>
+  <script src="js/audio.js?v=37"></script>
+  <script src="js/pets.js?v=37"></script>
+  <script src="js/themes.js?v=37"></script>
+  <script src="js/themes-wild.js?v=37"></script>
+  <script src="js/themes-infinite.js?v=37"></script>
+  <script src="js/world.js?v=37"></script>
+  <script src="js/ui.js?v=37"></script>
+  <script src="js/game.js?v=37"></script>
 </body>
 </html>

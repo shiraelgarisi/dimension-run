@@ -284,6 +284,30 @@
   };
   // stars per level: 1 finish, 2 all shards, 4 no hits (no bumps, no shield used, no continue)
   DR.STARS = { reward: 5, endless: [1000, 2500, 5000] };   // diamonds per new star; Infinite World stars by metres
+  // Daily reward: one per day; the streak climbs to day 7 and starts over. Missing a day resets it.
+  DR.DAILY = [
+    { coins: 50, icon: '💰', label: '50 coins' },
+    { gems: 10, icon: '💎', label: '10 diamonds' },
+    { coins: 100, icon: '💰', label: '100 coins' },
+    { gems: 15, icon: '💎', label: '15 diamonds' },
+    { items: { shield: 1, magnet: 1 }, icon: '🛡️🧲', label: 'Shield + magnet' },
+    { gems: 25, icon: '💎', label: '25 diamonds' },
+    { gift: true, icon: '🎁', label: 'Mystery gift' },
+  ];
+
+  // Daily missions: three a day, picked from this list (the target is one of three sizes)
+  DR.MISSIONS = [
+    { type: 'coins', icon: '💰', text: 'Collect {n} coins', targets: [60, 100, 160], reward: { coins: 40 } },
+    { type: 'jumps', icon: '⬆️', text: 'Jump {n} times', targets: [15, 25, 40], reward: { coins: 30 } },
+    { type: 'slides', icon: '⬇️', text: 'Slide {n} times', targets: [10, 18, 28], reward: { coins: 30 } },
+    { type: 'switches', icon: '☯️', text: 'Switch worlds {n} times', targets: [15, 30, 50], reward: { coins: 40 } },
+    { type: 'meters', icon: '🏃', text: 'Run {n} m in total', targets: [1500, 3000, 5000], reward: { gems: 5 } },
+    { type: 'chests', icon: '🧰', text: 'Open {n} treasure chests', targets: [1, 2, 3], reward: { gems: 5 } },
+    { type: 'gems', icon: '💎', text: 'Pick up {n} diamonds on the path', targets: [1, 2, 4], reward: { coins: 60 } },
+    { type: 'finish', icon: '🏁', text: 'Finish {n} levels', targets: [1, 2, 3], reward: { gems: 10 } },
+    { type: 'endless', icon: '∞', text: 'Reach {n} m in the Infinite World', targets: [600, 1200, 2000], reward: { gems: 10 }, max: true },
+  ];
+
   DR.COSMETIC_SLOTS = { pet: 'Pets', hat: 'Hats', outfit: 'Outfits', back: 'Back' };
 
   // Coin shop. Power-ups are used up automatically at the start of your next run.

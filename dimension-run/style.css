@@ -439,3 +439,37 @@ button.item.r-legendary .rar { color: #ffd84a; }
 .gift-stage[data-rarity="rare"] .gift-item .slot { color: #d89aff; }
 .gift-stage[data-rarity="common"] .gift-item .slot { color: #8ad0ff; }
 .panel { overflow-x: hidden; }
+
+/* ---------- daily reward ---------- */
+.daily-panel { width: min(760px, 100%); }
+.daily-title { font-family: 'Bungee', sans-serif; color: #ffb04d; margin: -4px 0 10px; letter-spacing: 1px; }
+.daily-track { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; }
+.daily-track .day { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); }
+.daily-track .day small { font-size: 10px; letter-spacing: 1px; color: var(--muted); }
+.daily-track .day .ico { font-size: 26px; }
+.daily-track .day .lbl { font-size: 10px; line-height: 1.15; }
+.daily-track .day.big { background: linear-gradient(160deg, rgba(255, 200, 58, 0.25), rgba(255, 255, 255, 0.05)); border-color: rgba(255, 200, 58, 0.7); }
+.daily-track .day.got { opacity: 0.55; }
+.daily-track .day.today { border-color: #ffe066; box-shadow: 0 0 18px rgba(255, 224, 102, 0.6); animation: tutPulse 1.2s ease-in-out infinite; }
+.daily-track .day.claimed { opacity: 1; animation: pop 0.4s; }
+.daily-track .tick { position: absolute; top: 4px; right: 6px; color: var(--good); }
+@media (max-width: 720px) { .daily-track { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- missions ---------- */
+.mission { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 8px 0; border-radius: 14px; background: rgba(255, 255, 255, 0.06); text-align: left; }
+.mission .ico { font-size: 28px; width: 36px; text-align: center; }
+.mission .txt { flex: 1; }
+.mission .txt b { font-size: 14px; }
+.mission .bar { height: 8px; margin: 6px 0 2px; border-radius: 5px; background: rgba(0, 0, 0, 0.4); overflow: hidden; }
+.mission .bar i { display: block; height: 100%; background: linear-gradient(90deg, #6cf08a, #3affc0); }
+.mission .txt small { font-size: 11px; color: var(--muted); }
+.mission .reward { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.mission.done { border: 1px solid rgba(108, 240, 138, 0.6); }
+#missionsBtn small { margin-left: 6px; opacity: 0.8; }
+#missionsBtn.has-gift::after { content: '🎁'; margin-left: 6px; }
+
+/* ---------- one more run ---------- */
+.push { margin: 4px 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.push div { padding: 8px 12px; border-radius: 12px; background: rgba(255, 224, 102, 0.1); border: 1px solid rgba(255, 224, 102, 0.35); font-size: 14px; font-weight: 600; }
+button.again { animation: againPulse 1.4s ease-in-out infinite; }
+@keyframes againPulse { 50% { transform: scale(1.04); box-shadow: 0 0 26px rgba(255, 176, 32, 0.6); } }

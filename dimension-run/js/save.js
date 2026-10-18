@@ -12,7 +12,8 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, newItems: [], stars: {}, onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, newItems: [], stars: {}, bestProgress: {},
+    daily: { last: '', streak: 0 }, missions: { date: '', list: [], bonus: 'none' }, onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
@@ -42,6 +43,19 @@
     for (let i = 0; i <= LEVEL_COUNT; i++) {
       const m = Math.floor(Number(raw.stars && raw.stars[i]));
       if (m > 0 && m < 8) d.stars[i] = m;
+    }
+    for (let i = 1; i <= LEVEL_COUNT; i++) {
+      const bp = Number(raw.bestProgress && raw.bestProgress[i]);
+      if (bp > 0 && bp <= 1) d.bestProgress[i] = bp;
+    }
+    if (raw.daily && /^\d{4}-\d\d-\d\d$/.test(raw.daily.last)) {
+      d.daily.last = raw.daily.last;
+      d.daily.streak = Math.max(0, Math.min(7, Math.floor(Number(raw.daily.streak)) || 0));
+    }
+    if (raw.missions && /^\d{4}-\d\d-\d\d$/.test(raw.missions.date) && Array.isArray(raw.missions.list)) {
+      const list = raw.missions.list.filter(m => m && DR.MISSIONS.some(x => x.type === m.type) && m.target > 0).slice(0, 3)
+        .map(m => ({ type: m.type, target: Math.floor(m.target), progress: Math.max(0, Number(m.progress) || 0), done: m.done === true }));
+      if (list.length === 3) d.missions = { date: raw.missions.date, list, bonus: ['none', 'ready', 'claimed'].includes(raw.missions.bonus) ? raw.missions.bonus : 'none' };
     }
     if (Array.isArray(raw.newItems)) d.newItems = raw.newItems.filter(k => typeof k === 'string' && exists(k)).slice(0, 50);
     const gm = Math.floor(Number(raw.gems));
@@ -134,13 +148,14 @@
       return true;
     },
     /** Opens a treasure chest: { kind: 'item', slot, item } | { kind: 'coins' | 'gems', amount }. Applied and saved. */
-    openChest(rand = Math.random) {
+    openChest(rand = Math.random, boost = false) {
       const C = DR.CHEST;
       const weighted = list => { let t = 0; for (const [, w] of list) t += w; let x = rand() * t; for (const [v, w] of list) { if ((x -= w) < 0) return v; } return list[list.length - 1][0]; };
       const itemsLeft = this.findable().length > 0;
-      const kind = weighted([['item', itemsLeft ? C.item : 0], ['coins', C.coins], ['gems', C.gems]]);
+      // a boosted chest (the day-7 gift) gives an item or diamonds, and favours rare items
+      const kind = weighted([['item', itemsLeft ? (boost ? 70 : C.item) : 0], ['coins', boost ? 0 : C.coins], ['gems', C.gems]]);
       if (kind === 'item') {
-        const got = this.unlockRandom(rand);
+        const got = this.unlockRandom(rand, boost);
         this.data.newItems.push(got.slot + ':' + got.item.id);
         this.write();
         return Object.assign({ kind }, got);
@@ -169,14 +184,89 @@
       }
       return gained;
     },
+    // ---------- best progress (for the "one more run" screen) ----------
+    recordProgress(level, p) {
+      const before = this.data.bestProgress[level] || 0;
+      if (p > before) this.data.bestProgress[level] = Math.min(1, p);
+      return before;
+    },
+
+    // ---------- daily reward ----------
+    /** { available, day (1-7), broken: the streak was lost } for the date 'YYYY-MM-DD'. */
+    dailyStatus(today) {
+      const D = this.data.daily;
+      if (D.last === today) return { available: false, day: D.streak, broken: false };
+      const gap = D.last ? Math.round((Date.parse(today) - Date.parse(D.last)) / 864e5) : Infinity;
+      return { available: true, day: gap === 1 ? (D.streak % 7) + 1 : 1, broken: !!D.last && gap > 1 };
+    },
+    /** Claims today's reward; returns { day, reward, gift? } (gift: what a day-7 mystery gift held). */
+    claimDaily(today, rand = Math.random) {
+      const st = this.dailyStatus(today);
+      if (!st.available) return null;
+      this.data.daily = { last: today, streak: st.day };
+      const reward = DR.DAILY[st.day - 1];
+      if (reward.coins) this.addCoins(reward.coins);
+      if (reward.gems) this.addGems(reward.gems);
+      if (reward.items) for (const k in reward.items) this.data.items[k] += reward.items[k];
+      const gift = reward.gift ? this.openChest(rand, true) : null;
+      this.write();
+      return { day: st.day, reward, gift };
+    },
+
+    // ---------- daily missions ----------
+    /** Makes sure today's three missions exist (the same three all day). */
+    ensureMissions(today) {
+      if (this.data.missions.date === today) return this.data.missions;
+      let h = 0;
+      for (const ch of today) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      const rnd = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296);
+      const pool = DR.MISSIONS.slice(), list = [];
+      while (list.length < 3) {
+        const def = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
+        list.push({ type: def.type, target: def.targets[Math.floor(rnd() * 3)], progress: 0, done: false });
+      }
+      this.data.missions = { date: today, list, bonus: 'none' };
+      this.write();
+      return this.data.missions;
+    },
+    missionDef(m) { return DR.MISSIONS.find(x => x.type === m.type); },
+    /** Adds progress (or keeps the best, for 'max' missions). Returns the missions just completed (rewards paid). */
+    missionProgress(type, amount) {
+      const done = [];
+      for (const m of this.data.missions.list) {
+        if (m.done || m.type !== type) continue;
+        const def = this.missionDef(m);
+        m.progress = def.max ? Math.max(m.progress, amount) : m.progress + amount;
+        if (m.progress >= m.target) {
+          m.done = true;
+          m.progress = m.target;
+          if (def.reward.coins) this.addCoins(def.reward.coins);
+          if (def.reward.gems) this.addGems(def.reward.gems);
+          done.push(m);
+        }
+      }
+      if (done.length) {
+        if (this.data.missions.list.every(m => m.done) && this.data.missions.bonus === 'none') this.data.missions.bonus = 'ready';
+        this.write();
+      }
+      return done;
+    },
+    /** All three done: the bonus gift. */
+    claimMissionBonus(rand = Math.random) {
+      if (this.data.missions.bonus !== 'ready') return null;
+      this.data.missions.bonus = 'claimed';
+      return this.openChest(rand);
+    },
+
     starsOf(level) { return this.data.stars[level] || 0; },
     totalStars() { let t = 0; for (const k in this.data.stars) t += starCount(this.data.stars[k]); return t; },
-    unlockRandom(rand = Math.random) {
+    unlockRandom(rand = Math.random, boost = false) {
       const all = Object.keys(COS()).flatMap(slot => COS()[slot].filter(item => !item.price).map(item => ({ slot, item })));
       const left = all.filter(x => !this.owns(x.slot, x.item.id));
       if (!left.length) return null;
       // rarer items come out less often
-      const w = x => (DR.RARITY[x.item.rarity] || DR.RARITY.common).weight;
+      const BOOSTED = { common: 10, rare: 30, legendary: 60 };
+      const w = x => (boost ? BOOSTED[x.item.rarity || 'common'] : (DR.RARITY[x.item.rarity] || DR.RARITY.common).weight);
       let r = rand() * left.reduce((t, x) => t + w(x), 0), pick = left[left.length - 1];
       for (const x of left) { if ((r -= w(x)) < 0) { pick = x; break; } }
       this.data.owned.push(pick.slot + ':' + pick.item.id);

@@ -20,6 +20,48 @@
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
   let bossHits = 0;
+  let lastMeters = 0;   // distance already counted towards today's missions
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // what a chest-style reward looks like in a gift box
+  function prizeOf(got) {
+    const tier = (a, small, mid) => (a <= small ? 'common' : a <= mid ? 'rare' : 'legendary');
+    if (got.kind === 'item') return Object.assign(got, { rarity: got.item.rarity || 'common' });
+    if (got.kind === 'coins') return { slot: 'coins', rarity: tier(got.amount, 50, 100), item: { id: null, icon: '💰', name: got.amount + ' Coins' } };
+    return { slot: 'gems', rarity: tier(got.amount, 10, 15), item: { id: null, icon: got.amount >= 50 ? '💎💎💎' : '💎', name: got.amount + ' Diamonds' } };
+  }
+  const wearIt = (slot, id) => { if (save.equip(slot, id)) world.applyOutfit(save.data.equipped); };
+
+  // daily missions: progress from what happens in a run (not in the tutorial)
+  function mission(type, amount) {
+    if (tut || bot || TEST) return;
+    for (const m of save.missionProgress(type, amount)) {
+      const def = save.missionDef(m), r = def.reward;
+      UI.banner(`✅ MISSION COMPLETE<small>${def.text.replace('{n}', m.target)} · +${r.coins ? r.coins + ' COINS' : r.gems + ' 💎'}</small>`, 'treasure', 1800);
+      Sound.chest();
+    }
+  }
+
+  function showDaily() {
+    const st = save.dailyStatus(today());
+    UI.renderDaily(st, () => {
+      const res = save.claimDaily(today());
+      if (!res) return;
+      Sound.chest();
+      UI.renderMenu(save, nextLevelToPlay());
+      if (res.gift) UI.showGifts([prizeOf(res.gift)], wearIt, toMenu);
+      else { UI.dailyClaimed(res); setTimeout(() => { if (UI.current === 'daily') toMenu(); }, 1500); }
+    });
+    UI.show('daily');
+  }
+
+  function showMissions() {
+    UI.renderMissions(save, () => {
+      const got = save.claimMissionBonus();
+      if (got) { Sound.chest(); UI.showGifts([prizeOf(got)], wearIt, showMissions); }
+    });
+    UI.show('missions');
+  }
   const thumbs = {};   // level id -> picture of its world (made once, on the menu)
   let tut = null;   // the guided tutorial: { then: level to play next, done: Set of rows, waiting: row or null }
   let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
@@ -61,9 +103,11 @@
     UI.hud(false);
     UI.vignette(false);
     document.body.dataset.level = '1';
+    save.ensureMissions(today());
     UI.renderMenu(save, nextLevelToPlay());
     UI.show('menu');
     menuGuide();
+    if (save.data.tutorialDone && !TEST && !AUTOPILOT && save.dailyStatus(today()).available) showDaily();
     Sound.setIntensity(0);
     Sound.setSong('menu');
     Sound.musicStart();
@@ -166,6 +210,8 @@
     setMode('countdown');
     countdownStep = -1;
     milestone = 0;
+    lastMeters = 0;
+    save.ensureMissions(today());
     padHints = {};
     prizes = [];
     setWarpClass(null);
@@ -225,6 +271,7 @@
     wardrobeWorld: toggleWardrobeWorld,
     exit: exitGame,
     menu: toMenu,
+    missions: showMissions,
     info: () => UI.show('info'),
     resetProgress: () => { save.reset(); showLevels(); UI.renderMenu(save, 1); },
     resume,
@@ -344,15 +391,15 @@
   function handleEvents() {
     for (const e of sim.events) {
       switch (e.type) {
-        case 'jump': Sound.jump(); tutDid('jump'); break;
-        case 'slide': Sound.slide(); tutDid('slide'); break;
+        case 'jump': Sound.jump(); tutDid('jump'); mission('jumps', 1); break;
+        case 'slide': Sound.slide(); tutDid('slide'); mission('slides', 1); break;
         case 'move': Sound.move(); tutDid('side'); break;
-        case 'switch': tutDid('switch'); Sound.switchTo(e.world); world.switchFx(e.world); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
+        case 'switch': tutDid('switch'); mission('switches', 1); Sound.switchTo(e.world); world.switchFx(e.world); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
         case 'switchDenied': Sound.denied(); UI.denied(); break;
         case 'ready': if (track.cfg.cooldown > 0) Sound.ready(); break;
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
-        case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); break;
-        case 'gem': Sound.gem(); world.hideGem(e.index); save.addGems(e.value); UI.banner(`💎 +${e.value}`, 'milestone gem', 700); break;
+        case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); mission('coins', 1); break;
+        case 'gem': Sound.gem(); world.hideGem(e.index); save.addGems(e.value); mission('gems', 1); UI.banner(`💎 +${e.value}`, 'milestone gem', 700); break;
         case 'shield': Sound.shield(); world.shieldFx(); UI.flash('w'); UI.banner('🛡️ SHIELD!<small>IT SAVED YOU</small>', 'milestone', 900); break;
         case 'shard':
           Sound.shard(); world.hideShard(e.index);
@@ -362,11 +409,8 @@
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
           // clothing, coins or diamonds: saved right away, but kept a surprise until the gift box
-          const got = save.openChest();
-          const tier = (a, small, mid) => (a <= small ? 'common' : a <= mid ? 'rare' : 'legendary');
-          if (got.kind === 'item') prizes.push(Object.assign(got, { rarity: got.item.rarity || 'common' }));
-          else if (got.kind === 'coins') prizes.push({ slot: 'coins', rarity: tier(got.amount, 50, 100), item: { id: null, icon: '💰', name: got.amount + ' Coins' } });
-          else prizes.push({ slot: 'gems', rarity: tier(got.amount, 10, 15), item: { id: null, icon: got.amount >= 50 ? '💎💎💎' : '💎', name: got.amount + ' Diamonds' } });
+          prizes.push(prizeOf(save.openChest()));
+          mission('chests', 1);
           UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800);
           break;
         }
@@ -385,6 +429,7 @@
           setMode('dead');
           break;
         case 'finish':
+          if (!track.cfg.tutorial) mission('finish', 1);
           if (track.cfg.final) {
             setMode('victory'); Sound.musicStop(); Sound.victory(); UI.flash('w'); world.runner.scale = 1;
             if (track.cfg.boss) { world.bossDefeat(); Sound.bossDefeat(); UI.bossBar(track.cfg.boss.name, 0); UI.banner('MONSTER KING DEFEATED!<small>YOU SAVED BOTH WORLDS</small>', 'treasure', 2600); }
@@ -484,6 +529,9 @@
         handleEvents();
         if (mode !== 'play') break;
         if (!(tut && tut.waiting)) UI.hint(currentHint() || padHint());
+        // distance missions count as you run
+        if (sim.player.d - lastMeters >= 5) { mission('meters', sim.player.d - lastMeters); lastMeters = sim.player.d; }
+        if (track.cfg.endless) mission('endless', sim.player.d);
         // the boss weakens as you get closer to the end, and more with every shard hit
         if (track.cfg.boss) {
           const hp = Math.max(0.04, 1 - sim.progress * 0.85 - bossHits * track.cfg.boss.hitPerShard);
@@ -528,6 +576,8 @@
         if (modeT > 1.4) {
           const score = sim.scoring.score;
           const meters = Math.floor(sim.player.d);
+          const prevBestMeters = save.data.endlessBest;
+          const prevBestP = track.cfg.endless || track.cfg.tutorial ? 0 : save.recordProgress(level, sim.progress);
           const isBest = track.cfg.tutorial ? false : track.cfg.endless ? save.recordEndless(meters) : save.recordScore(level, score);
           if (track.cfg.endless) save.recordScore(0, score);
           const eStars = track.cfg.endless ? DR.STARS.endless.reduce((m, d, i) => m | (meters >= d ? 1 << i : 0), 0) : 0;
@@ -537,6 +587,7 @@
           const over = {
             cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest,
             wallet: save.data.wallet, reviveCost: reviveCost(), endless: !!track.cfg.endless, meters, bestMeters: save.data.endlessBest, stars: eStars, newStars: eNew,
+            push: oneMoreRun(meters, prevBestMeters, prevBestP),
           };
           mode = 'result';
           openGifts(() => UI.gameOver(over));
@@ -587,6 +638,31 @@
         });
       }
     });
+  }
+
+  // "so close!" lines for the game-over screen: the reasons to try once more
+  function oneMoreRun(meters, prevBestMeters, prevBestP) {
+    const lines = [], close = [];
+    if (track.cfg.endless) {
+      if (meters < prevBestMeters) lines.push(`🏁 Only ${prevBestMeters - meters} m short of your record!`);
+      else if (prevBestMeters > 0) lines.push('🎉 A new record in the Infinite World!');
+    } else if (!track.cfg.tutorial) {
+      const short = Math.ceil((prevBestP - sim.progress) * track.length);
+      if (short > 0) lines.push(`🏁 Only ${short} m short of your best on this level!`);
+      else if (prevBestP > 0) lines.push('🎉 Your furthest run ever on this level!');
+    }
+    const shop = Object.values(DR.SHOP).filter(it => save.data.wallet < it.price).sort((a, b) => a.price - b.price)[0];
+    if (shop) close.push({ r: save.data.wallet / shop.price, t: `💰 ${shop.price - save.data.wallet} more coins for a ${shop.icon} ${shop.name}` });
+    const pet = DR.COSMETICS.pet.filter(p => p.price && !save.owns('pet', p.id) && save.data.gems < p.price).sort((a, b) => a.price - b.price)[0];
+    if (pet) close.push({ r: save.data.gems / pet.price, t: `💎 ${pet.price - save.data.gems} more diamonds for the ${pet.icon} ${pet.name}` });
+    for (const m of save.data.missions.list) {
+      if (m.done) continue;
+      const def = save.missionDef(m);
+      close.push({ r: m.progress / m.target, t: `${def.icon} Mission: ${def.text.replace('{n}', m.target)} · ${Math.floor(m.progress)}/${m.target}` });
+    }
+    close.sort((a, b) => b.r - a.r);
+    for (const c of close) { if (lines.length >= 3) break; lines.push(c.t); }
+    return lines;
   }
 
   // gift boxes for the items won this run: tap to open each one, then the result screen

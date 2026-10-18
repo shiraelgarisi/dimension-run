@@ -4,7 +4,7 @@
   'use strict';
   const DR = window.DR;
   const $ = id => document.getElementById(id);
-  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'gift', 'info', 'pause', 'over', 'complete', 'victory', 'exit'];
+  const SCREENS = ['menu', 'levels', 'wardrobe', 'shop', 'gift', 'info', 'daily', 'missions', 'pause', 'over', 'complete', 'victory', 'exit'];
   const RING = 2 * Math.PI * 28;
 
   let hintText = '', bannerTimer = null, lastHud = {};
@@ -15,6 +15,8 @@
       on('startBtn', h.start);
       on('levelsBtn', h.levels);
       on('wardrobeBtn', h.wardrobe);
+      on('missionsBtn', h.missions);
+      on('missionsBack', h.menu);
       on('infoBtn', h.info);
       on('pauseInfoBtn', () => { this.infoFrom = 'pause'; h.info(); });
       on('infoBack', () => { const from = this.infoFrom || 'menu'; this.infoFrom = null; this.show(from); });
@@ -70,6 +72,9 @@
       $('shopCoins').textContent = save.data.wallet;
       $('menuCoins').textContent = save.data.wallet;
       $('menuGems').textContent = save.data.gems;
+      const ms = save.data.missions;
+      $('missionsCount').textContent = ms.list.length ? `${ms.list.filter(m => m.done).length}/3` : '';
+      $('missionsBtn').classList.toggle('has-gift', ms.bonus === 'ready');
       $('menuStars').textContent = `${save.totalStars()}/${(DR.LEVELS.length + 1) * 3}`;
       $('wardrobeBtn').classList.toggle('has-new', save.data.newItems.length > 0);
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
@@ -216,6 +221,43 @@
           if (gained & (1 << i)) { s.classList.add('new'); DR.Sound.shard(); } else DR.Sound.ready();
         }, 350 + i * 450);
       });
+    },
+
+    /** The daily reward track: seven days, today glowing. */
+    renderDaily(st, claim) {
+      const track = $('dailyTrack');
+      track.innerHTML = DR.DAILY.map((r, i) => {
+        const day = i + 1, cls = day < st.day ? 'got' : day === st.day ? 'today' : 'later';
+        return `<div class="day ${cls}${day === 7 ? ' big' : ''}"><small>DAY ${day}</small><span class="ico">${r.icon}</span><span class="lbl">${r.label}</span>${cls === 'got' ? '<b class="tick">✓</b>' : ''}</div>`;
+      }).join('');
+      $('dailyTitle').textContent = `DAY ${st.day} ${st.day > 1 ? '· ' + st.day + ' DAYS IN A ROW 🔥' : ''}`;
+      $('dailyNote').textContent = st.broken ? 'Your streak started over. Come back every day to keep it going!' : 'Come back every day: day 7 is a mystery gift!';
+      $('dailyClaim').disabled = false;
+      $('dailyClaim').onclick = () => { $('dailyClaim').disabled = true; claim(); };
+    },
+    dailyClaimed(res) {
+      const t = $('dailyTrack').children[res.day - 1];
+      t.classList.remove('today'); t.classList.add('got', 'claimed');
+      t.insertAdjacentHTML('beforeend', '<b class="tick">✓</b>');
+      $('dailyNote').textContent = `+${res.reward.label}! See you tomorrow for day ${res.day % 7 + 1}.`;
+    },
+
+    /** Today's three missions, their progress, and the bonus gift. */
+    renderMissions(save, openBonus) {
+      const ms = save.data.missions;
+      $('missionList').innerHTML = ms.list.map(m => {
+        const def = save.missionDef(m), r = def.reward, pct = Math.min(100, m.progress / m.target * 100);
+        return `<div class="mission${m.done ? ' done' : ''}"><span class="ico">${def.icon}</span><div class="txt"><b>${def.text.replace('{n}', m.target)}</b>
+          <div class="bar"><i style="width:${pct}%"></i></div><small>${Math.floor(m.progress)} / ${m.target}</small></div>
+          <span class="reward">${m.done ? '✅' : r.coins ? '+' + r.coins + ' 💰' : '+' + r.gems + ' 💎'}</span></div>`;
+      }).join('');
+      const b = $('missionBonus');
+      b.innerHTML = ms.bonus === 'ready' ? '<button id="missionGift" class="big gold">🎁 OPEN YOUR GIFT</button>'
+        : ms.bonus === 'claimed' ? '<p class="small">All done today: gift opened ✓</p>' : '<p class="small">Finish all three for a 🎁 gift!</p>';
+      if (ms.bonus === 'ready') $('missionGift').onclick = openBonus;
+      const now = new Date(), next = new Date(now); next.setHours(24, 0, 0, 0);
+      const mins = Math.round((next - now) / 60000);
+      $('missionTimer').textContent = `New missions in ${Math.floor(mins / 60)}h ${mins % 60}m`;
     },
 
     /** Boss health bar: name (or null to hide) and health 0..1. */
@@ -366,6 +408,8 @@
       $('overCoins').textContent = d.coins;
       $('overBest').textContent = d.best;
       $('overNewBest').classList.toggle('hidden', !d.isBest);
+      $('overPush').innerHTML = (d.push || []).map(t => `<div>${t}</div>`).join('');
+      $('overPush').classList.toggle('hidden', !(d.push && d.push.length));
       $('oStars').classList.toggle('hidden', !d.endless);
       if (d.endless) this.starsRow($('oStars'), d.stars, d.newStars, DR.STARS.endless.map(m => m + ' m'));
       const can = d.wallet >= d.reviveCost;
