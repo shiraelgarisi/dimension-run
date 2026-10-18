@@ -20,6 +20,7 @@
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
   let bossHits = 0;
+  let splashing = !TEST && !AUTOPILOT && !params.has('level'), dailyAfterSplash = false;
   let lastMeters = 0;   // distance already counted towards today's missions
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -107,7 +108,10 @@
     UI.renderMenu(save, nextLevelToPlay());
     UI.show('menu');
     menuGuide();
-    if (save.data.tutorialDone && !TEST && !AUTOPILOT && save.dailyStatus(today()).available) showDaily();
+    // the daily reward pops up on the menu (after the opening animation, if it is playing)
+    if (save.data.tutorialDone && !TEST && !AUTOPILOT && save.dailyStatus(today()).available) {
+      if (splashing) dailyAfterSplash = true; else showDaily();
+    }
     Sound.setIntensity(0);
     Sound.setSong('menu');
     Sound.musicStart();
@@ -640,6 +644,29 @@
     });
   }
 
+  // the opening: the name flies in letter by letter, then the tagline, then the menu pops in
+  function playSplash() {
+    const sp = document.getElementById('splash');
+    for (const word of sp.querySelectorAll('.sp-logo span')) {
+      word.innerHTML = [...word.textContent].map((c, i) => `<i class="ch" style="--i:${i}">${c}</i>`).join('');
+    }
+    sp.classList.remove('hidden');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      sp.classList.add('out');
+      const panel = document.querySelector('#menu .panel');
+      panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter');
+      setTimeout(() => sp.classList.add('hidden'), 800);
+      splashing = false;
+      if (dailyAfterSplash) setTimeout(() => { if (mode === 'menu' && UI.current === 'menu') showDaily(); }, 1300);
+    };
+    setTimeout(finish, 3900);
+    sp.addEventListener('pointerdown', finish);
+    window.addEventListener('keydown', finish, { once: true });
+  }
+
   // "so close!" lines for the game-over screen: the reasons to try once more
   function oneMoreRun(meters, prevBestMeters, prevBestP) {
     const lines = [], close = [];
@@ -719,6 +746,8 @@
   world.onBossThrow = () => Sound.bossThrow();
   world.applyOutfit(save.data.equipped);
   toMenu();
+  // opening animation (not for test links or links straight into a level)
+  if (!TEST && !AUTOPILOT && !params.has('level')) playSplash();
   setTimeout(makeThumbs, 600);   // level pictures are ready before the player opens the level list
   if (params.has('level')) {
     const n = U.clamp(parseInt(params.get('level'), 10) || 0, 0, DR.LEVELS.length);

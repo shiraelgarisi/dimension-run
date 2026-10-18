@@ -473,3 +473,42 @@ button.item.r-legendary .rar { color: #ffd84a; }
 .push div { padding: 8px 12px; border-radius: 12px; background: rgba(255, 224, 102, 0.1); border: 1px solid rgba(255, 224, 102, 0.35); font-size: 14px; font-weight: 600; }
 button.again { animation: againPulse 1.4s ease-in-out infinite; }
 @keyframes againPulse { 50% { transform: scale(1.04); box-shadow: 0 0 26px rgba(255, 176, 32, 0.6); } }
+
+/* ---------- the tagline in the logo font ---------- */
+.tag { font-family: 'Bungee', 'Fredoka', sans-serif; font-size: 14px; letter-spacing: 1px; color: #d8ccff; }
+
+/* ---------- opening animation ---------- */
+#splash { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px; overflow: hidden;
+  background: radial-gradient(ellipse at center, #2a1050 0%, #0c0618 72%); transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease; }
+#splash.out { opacity: 0; transform: scale(1.18); filter: blur(8px); pointer-events: none; }
+.sp-glow { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(70px); opacity: 0; animation: spGlow 2.6s ease-out forwards; }
+.sp-glow.l { background: rgba(255, 207, 58, 0.32); left: -30vmax; top: -25vmax; }
+.sp-glow.d { background: rgba(176, 77, 255, 0.42); right: -30vmax; bottom: -25vmax; animation-delay: 0.5s; }
+@keyframes spGlow { to { opacity: 1; transform: scale(1.12); } }
+.sp-logo { position: relative; font-size: clamp(46px, 13vw, 112px); animation: spFlash 0.9s ease-out 1.75s; }
+.sp-logo .ch { display: inline-block; font-style: normal; opacity: 0; animation: spDrop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) forwards; animation-delay: calc(var(--i) * 65ms + 250ms); }
+.sp-logo .d .ch { animation-name: spRise; animation-delay: calc(var(--i) * 110ms + 1050ms); }
+@keyframes spDrop { from { opacity: 0; transform: translateY(-80px) scale(1.8) rotate(-14deg); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes spRise { from { opacity: 0; transform: translateY(80px) scale(0.3); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes spFlash { 40% { filter: brightness(1.8) drop-shadow(0 0 40px #fff); transform: scale(1.06); } }
+.sp-tag { margin: 22px 0 0; font-family: 'Bungee', 'Fredoka', sans-serif; font-size: clamp(14px, 3.4vw, 24px); letter-spacing: 1px; color: #e8e0ff; }
+.sp-tag span { display: inline-block; opacity: 0; animation: spWord 0.6s ease-out forwards; }
+.sp-tag span:nth-child(1) { animation-delay: 2.05s; }
+.sp-tag span:nth-child(2) { animation-delay: 2.5s; }
+.sp-tag span:nth-child(3) { animation-delay: 2.95s; color: #ffcf3a; text-shadow: 0 0 18px rgba(255, 207, 58, 0.8); }
+@keyframes spWord { from { opacity: 0; transform: translateY(16px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.sp-skip { position: absolute; bottom: calc(18px + env(safe-area-inset-bottom)); color: rgba(255, 255, 255, 0.4); letter-spacing: 2px; opacity: 0; animation: spWord 0.6s 1.2s forwards; }
+
+/* the menu pops in after the opening */
+.title-panel.enter { animation: menuIn 0.75s cubic-bezier(0.2, 1.35, 0.4, 1); }
+.title-panel.enter .menu-buttons > * { animation: menuItem 0.5s ease-out backwards; }
+.title-panel.enter .menu-buttons > :nth-child(1) { animation-delay: 0.15s; }
+.title-panel.enter .menu-buttons > :nth-child(2) { animation-delay: 0.22s; }
+.title-panel.enter .menu-buttons > :nth-child(3) { animation-delay: 0.29s; }
+.title-panel.enter .menu-buttons > :nth-child(4) { animation-delay: 0.36s; }
+.title-panel.enter .menu-buttons > :nth-child(5) { animation-delay: 0.43s; }
+.title-panel.enter .menu-buttons > :nth-child(6) { animation-delay: 0.5s; }
+.title-panel.enter .menu-buttons > :nth-child(7) { animation-delay: 0.57s; }
+.title-panel.enter .menu-buttons > :nth-child(8) { animation-delay: 0.64s; }
+@keyframes menuIn { from { opacity: 0; transform: translateY(50px) scale(0.9); } }
+@keyframes menuItem { from { opacity: 0; transform: translateX(-30px); } }

@@ -11,10 +11,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=37">
+  <link rel="stylesheet" href="style.css?v=38">
 </head>
 <body>
   <canvas id="game"></canvas>
+  <!-- opening animation: the name, then the tagline, then the menu -->
+  <div id="splash" class="hidden">
+    <div class="sp-glow l"></div><div class="sp-glow d"></div>
+    <h1 class="logo sp-logo"><span class="l">DIMENSION</span><span class="d">RUN</span></h1>
+    <p class="sp-tag"><span>Two worlds.</span> <span>One path.</span> <span>Switch to survive.</span></p>
+    <small class="sp-skip">tap to skip</small>
+  </div>
   <div id="flash"></div>
   <div id="vignette"></div>
 
@@ -262,24 +269,24 @@
 
   <noscript><div class="screen"><div class="panel"><h2>JavaScript is required</h2></div></div></noscript>
 
-  <script src="vendor/three.min.js?v=37"></script>
-  <script src="js/util.js?v=37"></script>
-  <script src="js/config.js?v=37"></script>
-  <script src="js/save.js?v=37"></script>
-  <script src="js/track.js?v=37"></script>
-  <script src="js/collision.js?v=37"></script>
-  <script src="js/player.js?v=37"></script>
-  <script src="js/dimension.js?v=37"></script>
-  <script src="js/scoring.js?v=37"></script>
-  <script src="js/sim.js?v=37"></script>
-  <script src="js/autopilot.js?v=37"></script>
-  <script src="js/audio.js?v=37"></script>
-  <script src="js/pets.js?v=37"></script>
-  <script src="js/themes.js?v=37"></script>
-  <script src="js/themes-wild.js?v=37"></script>
-  <script src="js/themes-infinite.js?v=37"></script>
-  <script src="js/world.js?v=37"></script>
-  <script src="js/ui.js?v=37"></script>
-  <script src="js/game.js?v=37"></script>
+  <script src="vendor/three.min.js?v=38"></script>
+  <script src="js/util.js?v=38"></script>
+  <script src="js/config.js?v=38"></script>
+  <script src="js/save.js?v=38"></script>
+  <script src="js/track.js?v=38"></script>
+  <script src="js/collision.js?v=38"></script>
+  <script src="js/player.js?v=38"></script>
+  <script src="js/dimension.js?v=38"></script>
+  <script src="js/scoring.js?v=38"></script>
+  <script src="js/sim.js?v=38"></script>
+  <script src="js/autopilot.js?v=38"></script>
+  <script src="js/audio.js?v=38"></script>
+  <script src="js/pets.js?v=38"></script>
+  <script src="js/themes.js?v=38"></script>
+  <script src="js/themes-wild.js?v=38"></script>
+  <script src="js/themes-infinite.js?v=38"></script>
+  <script src="js/world.js?v=38"></script>
+  <script src="js/ui.js?v=38"></script>
+  <script src="js/game.js?v=39"></script>
 </body>
 </html>
