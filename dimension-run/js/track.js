@@ -299,7 +299,7 @@
         if (step.at != null) {
           d = step.at;
         } else {
-          let dt = step.dt != null ? step.dt : r.range(cfg.rowTime[0], cfg.rowTime[1]) * (prev && prev.d > finaleD ? 0.92 : 1);
+          let dt = step.dt != null ? step.dt * (cfg.spacing || 1) : r.range(cfg.rowTime[0], cfg.rowTime[1]) * (prev && prev.d > finaleD ? 0.92 : 1);
           if (k === 0) dt += extraDt;
           if (prev && isVertical(prev.cells) && isVertical(step.cells)) dt = Math.max(dt, C.VERTICAL_ROW_TIME);
           dt = Math.max(dt, C.MIN_ROW_TIME);
@@ -338,7 +338,7 @@
         const table = last && last.d > finaleD ? cfg.finale.patterns : cfg.patterns;
         const name = r.weighted(table);
         let extraDt = extra;
-        if (attempt === 0 && r.chance(0.12)) extraDt += cfg.rowTime[1] * 0.6;   // occasional breather
+        if (attempt === 0 && r.chance(0.2)) extraDt += cfg.rowTime[1] * 0.6;   // occasional breather
         const res = tryPlace(PATTERNS[name](r, ctx), name, extraDt);
         if (res === 'ok') continue outer;
         if (res === 'end') break outer;
