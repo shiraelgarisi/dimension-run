@@ -598,6 +598,14 @@
   // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
+  // private link: ?reset=all wipes this device's save and starts like a brand-new player (tutorial and all).
+  // The parameter is then removed from the address, so a refresh does not wipe again.
+  if (params.get('reset') === 'all') {
+    try { localStorage.removeItem('dimensionRun.save'); } catch (e) { /* storage blocked */ }
+    save.load();
+    params.delete('reset');
+    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+  }
   // private link: ?unlock=all opens every level and wardrobe item on this device (saved, so it sticks)
   if (params.get('unlock') === 'all') {
     save.data.unlocked = DR.LEVELS.length;
