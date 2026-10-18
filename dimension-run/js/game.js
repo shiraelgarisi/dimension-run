@@ -20,7 +20,7 @@
   let level = 1, track = null, sim = null, bot = null;
   let bossHits = 0;
   let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
-  let countdownStep = -1, milestone = 0, finaleShown = false, glitchT = 4, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
+  let countdownStep = -1, milestone = 0, finaleShown = false, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
 
   function setMode(m) { mode = m; modeT = 0; if (m !== 'paused' && m !== 'result') viewMode = m; }
 
@@ -130,7 +130,6 @@
     finaleShown = false;
     document.body.dataset.level = String(n);
     victoryFx = false;
-    glitchT = 3 + Math.random() * 3;
     UI.show(null);
     UI.hud(true);
     UI.startLevel(track.cfg, save.best(n));
@@ -440,12 +439,6 @@
             const side = Math.random() < 0.5 ? -1 : 1;
             world.burst(new THREE.Vector3(p.x + side * (5 + Math.random() * 12), 16, p.z - 20 - Math.random() * 50), 0x2a1c3a, 1, { speed: 1, up: -6, grav: 14, life: 2.2, size: 5 });
           }
-        }
-        // chaos levels: occasional reality glitches (purely visual)
-        const inst = track.cfg.instability;
-        if (inst > 0.3) {
-          glitchT -= dt;
-          if (glitchT <= 0) { glitchT = (2.5 + Math.random() * 4) / inst; world.pulseGlitch(); UI.glitch(); }
         }
         break;
       }

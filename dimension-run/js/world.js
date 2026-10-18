@@ -942,7 +942,8 @@
       this.padMeshes = [];
       this.chestMeshes = [];
       this.portal = null;
-      if (this.bossRes) { this.scene.remove(this.boss.g); this.bossRes.dispose(); }
+      if (this.boss) this.scene.remove(this.boss.g);
+      if (this.bossRes) { this.bossRes.dispose(); this.bossRes = null; }
       this.boss = null;
       this.bossRows = new Map();
       this.bossThrown = new Set();
@@ -1444,9 +1445,7 @@
         const tA = (mv.row.d - P.d) / speed;
         // same timing the solver assumes: settled MOVER_SETTLE seconds before you arrive
         const p = 1 - U.clamp((tA - C.MOVER_SETTLE) / C.MOVER_DURATION, 0, 1);
-        // later levels: the block wobbles side to side while it slides (it always settles in time)
-        const wob = (sim.track.cfg.sideShift || 0) * (1 - p) * (p > 0 ? 1 : 0.5) * Math.sin(t * 9 + mv.row.d) * 0.45;
-        const lat = (U.lerp(mv.from, mv.to, U.smooth(p)) + wob) * LW;
+        const lat = U.lerp(mv.from, mv.to, U.smooth(p)) * LW;
         if (mv.rock && mv.g.position.x !== lat) mv.rock.rotation.z -= (lat - mv.g.position.x) * 0.9;
         mv.g.position.x = lat;
         mv.ring.scale.setScalar(1 + 0.15 * Math.sin(t * 10));
@@ -1878,12 +1877,14 @@
       // Chaos/Final levels: the world feels unstable
       const inst = view.instability || 0;
       if (this.glitch > 0) this.glitch = Math.max(0, this.glitch - dt);
-      cam.position.x += inst * inst * Math.sin(t * 0.8) * 0.45;   // the world sways sideways more on later levels
-      const roll = inst * (Math.sin(t * 1.3) * 0.035 + Math.sin(t * 3.7) * 0.012) + (this.glitch > 0 ? (rnd() - 0.5) * 0.06 : 0);
+      // from level 4 the world rocks slowly from side to side, like a ship; stronger every level
+      const sway = inst * Math.sin(t * 1.05);
+      cam.position.x += sway * 0.7;
+      const roll = sway * 0.07 + (this.glitch > 0 ? (rnd() - 0.5) * 0.04 : 0);   // (a short shake only when a rift flips you)
       this.camRoll = U.lerp(this.camRoll, roll, U.damp(6, dt));
       cam.rotateZ(this.camRoll);
       const warpFov = sim.warp ? (sim.warp.kind === 'fast' ? 10 : -6) : 0;
-      const fov = this.baseFov + Math.max(0, sim.speed - 11) * 0.35 + inst * Math.sin(t * 0.9) * 1.5 + warpFov;
+      const fov = this.baseFov + Math.max(0, sim.speed - 11) * 0.35 + warpFov;
       if (Math.abs(cam.fov - fov) > 0.02) { cam.fov = U.lerp(cam.fov, fov, U.damp(3, dt)); cam.updateProjectionMatrix(); }
     }
 
