@@ -1,42 +1,49 @@
 /* Sound: everything is synthesized with the Web Audio API (no audio files).
-   Every level has its own song (the menu too), and every song has a Light and a Dark
-   layer; switching dimensions crossfades between them. Songs also scatter ambient
-   sounds that fit the place: birds and crickets, space radio, clock chimes, bubbles, rumbles. */
+   Every level (and the menu) has its own song: a real drum groove with a little swing, a
+   rhythmic bassline and a catchy hook that repeats with variations. In the Dark World the
+   same song keeps playing but turns muffled and spooky (a low-pass sweep plus a dark layer).
+   Ambient sounds fit each place: birds and crickets, space radio, clock chimes, bubbles... */
 (function () {
   'use strict';
   const DR = window.DR;
 
   const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);   // MIDI note -> Hz
-  const MUSIC_VOL = 0.42;
+  const MUSIC_VOL = 0.5;
+  const rnd = Math.random;
 
-  let ctx = null, master = null, musicBus = null, lightBus = null, darkBus = null, noiseBuf = null, reverb = null;
+  let ctx = null, master = null, musicGain = null, musicFilter = null, mainBus = null, darkBus = null, ambLight = null, ambDark = null, noiseBuf = null, reverb = null;
   let timer = null, nextT = 0, step = 0, bpm = 100, tempoScale = 1, intensity = 0, muted = false, mixTarget = 0;
-  let song = null;
+  let song = null, wantMusic = false;
 
   function init() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); if (wantMusic && !timer) startTimer(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 0.55;
     master.connect(ctx.destination);
-    // music: soft low-pass and a generated reverb for a calmer, roomier sound
-    const tone_ = ctx.createBiquadFilter(); tone_.type = 'lowpass'; tone_.frequency.value = 5200;
-    tone_.connect(master);
-    musicBus = ctx.createGain(); musicBus.gain.value = MUSIC_VOL; musicBus.connect(tone_);
+    // music chain: notes -> mainBus -> low-pass (opens in the Light World, closes in the Dark) -> volume
+    musicGain = ctx.createGain(); musicGain.gain.value = MUSIC_VOL; musicGain.connect(master);
+    musicFilter = ctx.createBiquadFilter(); musicFilter.type = 'lowpass'; musicFilter.frequency.value = 9000; musicFilter.Q.value = 0.8;
+    musicFilter.connect(musicGain);
     reverb = ctx.createConvolver();
-    const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    const len = ctx.sampleRate * 2.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (rnd() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
     reverb.buffer = ir;
-    const wet = ctx.createGain(); wet.gain.value = 0.32;
-    reverb.connect(wet).connect(musicBus);
-    lightBus = ctx.createGain(); lightBus.gain.value = 1; lightBus.connect(musicBus); lightBus.connect(reverb);
-    darkBus = ctx.createGain(); darkBus.gain.value = 0; darkBus.connect(musicBus); darkBus.connect(reverb);
+    const wet = ctx.createGain(); wet.gain.value = 0.22;
+    reverb.connect(wet).connect(musicGain);
+    mainBus = ctx.createGain(); mainBus.connect(musicFilter); mainBus.connect(reverb);
+    darkBus = ctx.createGain(); darkBus.gain.value = 0; darkBus.connect(musicGain); darkBus.connect(reverb);
+    ambLight = ctx.createGain(); ambLight.connect(musicGain);
+    ambDark = ctx.createGain(); ambDark.gain.value = 0; ambDark.connect(musicGain);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < d.length; i++) d[i] = rnd() * 2 - 1;
+    if (wantMusic) startTimer();   // music asked for before the first tap starts now
   }
+  // phones suspend audio in the background; wake it up when the game is visible again
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state === 'suspended') ctx.resume(); });
 
   function tone(freq, dur, { type = 'sine', vol = 0.1, to = null, at = 0, when = null, bus = master, attack = 0.005, filter = null } = {}) {
     if (!ctx) return;
@@ -67,284 +74,203 @@
   }
 
   // ------------------------------------------------------------------
-  // instruments (all take an absolute time `w` and a bus `b`)
+  // drums (w = time, v = loudness 0..1)
   // ------------------------------------------------------------------
-  const I = {
-    marimba: (n, w, b, v = 0.07) => { tone(NOTE(n), 0.35, { vol: v, when: w, bus: b }); tone(NOTE(n) * 4, 0.08, { vol: v * 0.25, when: w, bus: b }); },
-    musicBox: (n, w, b, v = 0.05) => { tone(NOTE(n), 0.9, { vol: v, when: w, bus: b }); tone(NOTE(n) * 3, 0.25, { vol: v * 0.3, when: w, bus: b }); },
-    bell: (n, w, b, v = 0.05, len = 1.8) => { tone(NOTE(n), len, { vol: v, when: w, bus: b }); tone(NOTE(n) * 2.76, len * 0.4, { vol: v * 0.35, when: w, bus: b }); },
-    pluck: (n, w, b, v = 0.05) => tone(NOTE(n), 0.3, { type: 'triangle', vol: v, when: w, bus: b }),
-    flute: (n, w, b, v = 0.05, len = 0.8) => tone(NOTE(n), len, { type: 'triangle', vol: v, when: w, bus: b, attack: 0.08 }),
-    pad: (notes, w, b, len, v = 0.03, cut = 1100) => notes.forEach(n => {
-      tone(NOTE(n) * 1.004, len, { type: 'sawtooth', vol: v, when: w, bus: b, attack: Math.min(0.8, len * 0.3), filter: cut });
-      tone(NOTE(n) * 0.996, len, { type: 'sawtooth', vol: v, when: w, bus: b, attack: Math.min(0.8, len * 0.3), filter: cut });
-    }),
-    softPad: (notes, w, b, len, v = 0.04) => notes.forEach(n => tone(NOTE(n), len, { type: 'triangle', vol: v, when: w, bus: b, attack: Math.min(0.9, len * 0.35) })),
-    bass: (n, w, b, v = 0.14, len = 0.4) => tone(NOTE(n), len, { type: 'triangle', vol: v, when: w, bus: b, attack: 0.01 }),
-    sub: (n, w, b, v = 0.16, len = 0.8) => tone(NOTE(n), len, { vol: v, when: w, bus: b, attack: 0.02 }),
-    harpsi: (n, w, b, v = 0.035) => tone(NOTE(n), 0.3, { type: 'sawtooth', vol: v, when: w, bus: b, filter: 2200 }),
-    brass: (notes, w, b, v = 0.05, len = 0.5) => notes.forEach(n => tone(NOTE(n), len, { type: 'sawtooth', vol: v, when: w, bus: b, attack: 0.04, filter: 900 })),
-    kick: (w, b, v = 0.22) => tone(110, 0.3, { vol: v, to: 42, when: w, bus: b }),
-    taiko: (w, b, v = 0.32) => { tone(82, 0.55, { vol: v, to: 38, when: w, bus: b }); noise(0.12, { vol: v * 0.3, freq: 300, when: w, bus: b }); },
-    tom: (f, w, b, v = 0.12) => tone(f, 0.22, { vol: v, to: f * 0.6, when: w, bus: b }),
-    snare: (w, b, v = 0.05) => noise(0.12, { vol: v, freq: 1800, when: w, bus: b }),
-    hat: (w, b, v = 0.015) => noise(0.04, { vol: v, freq: 8000, type: 'highpass', when: w, bus: b }),
-    shaker: (w, b, v = 0.018) => noise(0.06, { vol: v, freq: 6000, when: w, bus: b, q: 2 }),
-    tick: (w, b, hi, v = 0.05) => noise(0.025, { vol: v, freq: hi ? 4200 : 2400, when: w, bus: b, q: 6 }),
-    bubble: (w, b, v = 0.05) => { const f = 250 + Math.random() * 400; tone(f, 0.09, { vol: v, to: f * 2.6, when: w, bus: b }); },
+  const DRUM = {
+    kick: (w, v) => { tone(130, 0.32, { vol: 0.32 * v, to: 42, when: w, bus: mainBus }); noise(0.012, { vol: 0.08 * v, freq: 3000, when: w, bus: mainBus }); },
+    snare: (w, v) => { noise(0.16, { vol: 0.13 * v, freq: 1900, when: w, bus: mainBus, q: 0.8 }); tone(190, 0.1, { vol: 0.08 * v, to: 140, when: w, bus: mainBus }); },
+    clap: (w, v) => { for (let k = 0; k < 3; k++) noise(k < 2 ? 0.02 : 0.14, { vol: 0.1 * v, freq: 1400, when: w + k * 0.011, bus: mainBus, q: 1.2 }); },
+    rim: (w, v) => noise(0.03, { vol: 0.12 * v, freq: 2600, when: w, bus: mainBus, q: 6 }),
+    hat: (w, v) => noise(0.035, { vol: 0.035 * v, freq: 8500, type: 'highpass', when: w, bus: mainBus }),
+    open: (w, v) => noise(0.18, { vol: 0.035 * v, freq: 7500, type: 'highpass', when: w, bus: mainBus }),
+    shaker: (w, v) => noise(0.05, { vol: 0.03 * v, freq: 6500, when: w, bus: mainBus, q: 2 }),
+    conga: (w, v) => tone(330, 0.2, { vol: 0.11 * v, to: 230, when: w, bus: mainBus }),
+    tom: (w, v) => tone(150, 0.3, { vol: 0.15 * v, to: 95, when: w, bus: mainBus }),
+    taiko: (w, v) => { tone(78, 0.6, { vol: 0.3 * v, to: 38, when: w, bus: mainBus }); noise(0.1, { vol: 0.07 * v, freq: 300, when: w, bus: mainBus }); },
+    tick: (w, v) => noise(0.02, { vol: 0.07 * v, freq: 4200, when: w, bus: mainBus, q: 8 }),
   };
+
+  // ------------------------------------------------------------------
+  // instruments for bass, melody and chords (n = MIDI note, len = seconds)
+  // ------------------------------------------------------------------
+  const INST = {
+    pluck: (n, w, len, v) => { tone(NOTE(n), Math.max(0.18, len), { type: 'triangle', vol: 0.07 * v, when: w, bus: mainBus, filter: 3200 }); },
+    marimba: (n, w, len, v) => { tone(NOTE(n), 0.4, { vol: 0.08 * v, when: w, bus: mainBus }); tone(NOTE(n) * 4, 0.08, { vol: 0.02 * v, when: w, bus: mainBus }); },
+    glock: (n, w, len, v) => { tone(NOTE(n), 0.9, { vol: 0.05 * v, when: w, bus: mainBus }); tone(NOTE(n) * 2.76, 0.3, { vol: 0.016 * v, when: w, bus: mainBus }); },
+    musicBox: (n, w, len, v) => { tone(NOTE(n), 1.1, { vol: 0.05 * v, when: w, bus: mainBus }); tone(NOTE(n) * 3, 0.25, { vol: 0.012 * v, when: w, bus: mainBus }); },
+    whistle: (n, w, len, v) => { tone(NOTE(n), len * 0.95, { vol: 0.05 * v, when: w, bus: mainBus, attack: 0.03 }); tone(NOTE(n) * 2, len * 0.6, { vol: 0.006 * v, when: w, bus: mainBus, attack: 0.03 }); },
+    chip: (n, w, len, v) => tone(NOTE(n), Math.max(0.12, len * 0.8), { type: 'square', vol: 0.022 * v, when: w, bus: mainBus, filter: 3500 }),
+    synth: (n, w, len, v) => { for (const d of [0.996, 1.004]) tone(NOTE(n) * d, Math.max(0.2, len), { type: 'sawtooth', vol: 0.022 * v, when: w, bus: mainBus, attack: 0.01, filter: 2800 }); },
+    brass: (n, w, len, v) => { for (const d of [0.997, 1.003]) tone(NOTE(n) * d, Math.max(0.2, len), { type: 'sawtooth', vol: 0.03 * v, when: w, bus: mainBus, attack: 0.035, filter: 1500 }); },
+    harpsi: (n, w, len, v) => tone(NOTE(n), 0.32, { type: 'sawtooth', vol: 0.03 * v, when: w, bus: mainBus, filter: 2400 }),
+    clav: (n, w, len, v) => tone(NOTE(n), 0.12, { type: 'square', vol: 0.025 * v, when: w, bus: mainBus, filter: 1800 }),
+    // basses
+    bass: (n, w, len, v) => { tone(NOTE(n), Math.max(0.16, len), { type: 'triangle', vol: 0.15 * v, when: w, bus: mainBus, filter: 900 }); tone(NOTE(n), Math.max(0.16, len), { vol: 0.07 * v, when: w, bus: mainBus }); },
+    slap: (n, w, len, v) => { tone(NOTE(n), 0.2, { type: 'sawtooth', vol: 0.06 * v, when: w, bus: mainBus, filter: 1100 }); tone(NOTE(n), 0.2, { vol: 0.09 * v, when: w, bus: mainBus }); },
+    upright: (n, w, len, v) => tone(NOTE(n), 0.35, { vol: 0.16 * v, when: w, bus: mainBus, attack: 0.012 }),
+    sub: (n, w, len, v) => tone(NOTE(n), Math.max(0.3, len), { vol: 0.15 * v, when: w, bus: mainBus, attack: 0.02 }),
+  };
+  // a soft pad holding the chord for the whole bar
+  const pad = (notes, w, len, v = 1) => notes.forEach(n => tone(NOTE(n), len, { type: 'triangle', vol: 0.022 * v, when: w, bus: mainBus, attack: Math.min(0.6, len * 0.25) }));
 
   // ------------------------------------------------------------------
   // ambient sounds
   // ------------------------------------------------------------------
   const AMB = {
-    bird: (w, b) => { const f = 2200 + Math.random() * 1400, n = 2 + (Math.random() * 3 | 0); for (let i = 0; i < n; i++) tone(f * (i % 2 ? 1.25 : 1), 0.09, { vol: 0.025, to: f * (i % 2 ? 1 : 1.35), when: w + i * 0.11, bus: b }); },
-    cricket: (w, b) => { for (let i = 0; i < 3; i++) tone(4600, 0.035, { vol: 0.012, when: w + i * 0.06, bus: b }); },
-    owl: (w, b) => { tone(420, 0.35, { vol: 0.04, to: 400, when: w, bus: b, attack: 0.05 }); tone(400, 0.5, { vol: 0.035, to: 370, when: w + 0.45, bus: b, attack: 0.05 }); },
-    radio: (w, b) => { const f = 900 + Math.random() * 900; tone(f, 0.08, { type: 'square', vol: 0.012, when: w, bus: b, filter: 2500 }); tone(f * 1.5, 0.08, { type: 'square', vol: 0.01, when: w + 0.1, bus: b, filter: 2500 }); },
-    whoosh: (w, b) => noise(1.4, { vol: 0.03, freq: 300, sweep: 2400, when: w, bus: b }),
-    hum: (w, b) => tone(55, 2.5, { type: 'sawtooth', vol: 0.03, when: w, bus: b, attack: 0.8, filter: 200 }),
-    chime: (w, b) => [72, 76, 74, 67].forEach((n, i) => I.bell(n, w + i * 0.45, b, 0.03, 1.4)),
-    clank: (w, b) => { tone(180, 0.15, { type: 'square', vol: 0.02, to: 120, when: w, bus: b, filter: 800 }); noise(0.08, { vol: 0.03, freq: 900, when: w, bus: b }); },
-    bubbles: (w, b) => { for (let i = 0; i < 3; i++) I.bubble(w + i * (0.06 + Math.random() * 0.08), b, 0.03); },
-    squeak: (w, b) => tone(3200, 0.05, { vol: 0.012, to: 4600, when: w, bus: b }),
-    rumble: (w, b) => noise(2.2, { vol: 0.09, freq: 110, type: 'lowpass', when: w, bus: b }),
-    pop: (w, b) => { tone(600 + Math.random() * 500, 0.06, { vol: 0.03, to: 1400, when: w, bus: b }); noise(0.03, { vol: 0.03, freq: 3000, when: w + 0.02, bus: b }); },
-    zoom: (w, b) => { tone(180, 1.0, { type: 'sawtooth', vol: 0.02, to: 90, when: w, bus: b, filter: 900 }); noise(0.9, { vol: 0.025, freq: 600, sweep: 2400, when: w, bus: b }); },
-    growl: (w, b) => tone(70, 1.3, { type: 'sawtooth', vol: 0.05, to: 52, when: w, bus: b, attack: 0.2, filter: 300 }),
-    crackle: (w, b) => { for (let i = 0; i < 5; i++) noise(0.012, { vol: 0.05, freq: 3000, when: w + Math.random() * 0.4, bus: b, q: 3 }); },
+    bird: (w, b) => { const f = 2200 + rnd() * 1400, n = 2 + (rnd() * 3 | 0); for (let i = 0; i < n; i++) tone(f * (i % 2 ? 1.25 : 1), 0.09, { vol: 0.022, to: f * (i % 2 ? 1 : 1.35), when: w + i * 0.11, bus: b }); },
+    cricket: (w, b) => { for (let i = 0; i < 3; i++) tone(4600, 0.035, { vol: 0.01, when: w + i * 0.06, bus: b }); },
+    owl: (w, b) => { tone(420, 0.35, { vol: 0.035, to: 400, when: w, bus: b, attack: 0.05 }); tone(400, 0.5, { vol: 0.03, to: 370, when: w + 0.45, bus: b, attack: 0.05 }); },
+    radio: (w, b) => { const f = 900 + rnd() * 900; tone(f, 0.08, { type: 'square', vol: 0.01, when: w, bus: b, filter: 2500 }); tone(f * 1.5, 0.08, { type: 'square', vol: 0.008, when: w + 0.1, bus: b, filter: 2500 }); },
+    whoosh: (w, b) => noise(1.4, { vol: 0.025, freq: 300, sweep: 2400, when: w, bus: b }),
+    hum: (w, b) => tone(55, 2.5, { type: 'sawtooth', vol: 0.025, when: w, bus: b, attack: 0.8, filter: 200 }),
+    chime: (w, b) => [84, 88, 86, 79].forEach((n, i) => tone(NOTE(n), 1.2, { vol: 0.02, when: w + i * 0.45, bus: b })),
+    clank: (w, b) => { tone(180, 0.15, { type: 'square', vol: 0.016, to: 120, when: w, bus: b, filter: 800 }); noise(0.08, { vol: 0.025, freq: 900, when: w, bus: b }); },
+    bubbles: (w, b) => { for (let i = 0; i < 3; i++) { const f = 250 + rnd() * 400; tone(f, 0.09, { vol: 0.025, to: f * 2.6, when: w + i * (0.06 + rnd() * 0.08), bus: b }); } },
+    squeak: (w, b) => tone(3200, 0.05, { vol: 0.01, to: 4600, when: w, bus: b }),
+    rumble: (w, b) => noise(2.2, { vol: 0.07, freq: 110, type: 'lowpass', when: w, bus: b }),
+    crackle: (w, b) => { for (let i = 0; i < 5; i++) noise(0.012, { vol: 0.04, freq: 3000, when: w + rnd() * 0.4, bus: b, q: 3 }); },
+    pop: (w, b) => { tone(600 + rnd() * 500, 0.06, { vol: 0.025, to: 1400, when: w, bus: b }); },
+    zoom: (w, b) => noise(0.9, { vol: 0.02, freq: 600, sweep: 2400, when: w, bus: b }),
+    growl: (w, b) => tone(70, 1.3, { type: 'sawtooth', vol: 0.04, to: 52, when: w, bus: b, attack: 0.2, filter: 300 }),
   };
 
   // ------------------------------------------------------------------
-  // songs. light/dark(s, bar, w, L/D bus) are called on every step; amb lists ambient sounds per world
+  // songs
+  //   chords: one per bar (root first). drums: 16-step strings per instrument ('x' hit, 'X' accent).
+  //   bass: { pat: 16-step string, deg: semitones above the chord root for each hit, inst, oct }
+  //   hook: 2-bar melody [[step 0-31, MIDI note, length in steps], ...]; hookB: a variation (optional)
   // ------------------------------------------------------------------
-  const PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+  const C_MAJ = [[48, 52, 55, 59], [45, 48, 52, 55], [41, 45, 48, 52], [43, 47, 50, 55]];   // C  Am  F  G
   const SONGS = {
-    // a gentle music-box lullaby for the title screen
     menu: {
-      bpm: 70, steps: 16, bars: 4,
-      chords: [[60, 64, 67, 71], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 67]],
-      light(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0) { I.softPad([c[0] - 12, c[1] - 12, c[2] - 12], w, B, beat * 16, 0.028); I.sub(c[0] - 24, w, B, 0.08, beat * 12); }
-        if (s % 2 === 0) I.musicBox(c[[0, 1, 2, 3, 2, 1, 2, 3][s / 2]] + 12, w, B, 0.026);
-        if (s === 12 && bar % 2 === 1) I.bell(c[3] + 24, w, B, 0.018);
-      },
-      dark(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0) I.softPad([c[0] - 12, c[2] - 12], w, B, beat * 16, 0.03);
-        if (s === 0 || s === 6 || s === 10) I.bell(c[[0, 2, 1][s % 3]] + 12, w, B, 0.025, 2.2);
-      },
-      amb: [[], []],
+      bpm: 86, swing: 0.14, chords: C_MAJ,
+      drums: { kick: 'x.....x...x.....', rim: '....x.......x...', hat: '..x...x...x...x.' },
+      bass: { pat: 'x.....x...x.....', deg: [0, 0, 7], inst: 'bass', oct: -12 },
+      hook: [[0, 76, 2], [3, 79, 1], [4, 81, 3], [8, 79, 2], [10, 76, 2], [12, 74, 4], [16, 72, 2], [19, 74, 1], [20, 76, 3], [24, 74, 2], [26, 72, 2], [28, 69, 4]],
+      lead: 'musicBox', padVol: 1, amb: [[], []],
     },
-    // Jungle Temple: marimba, hand drums and shakers; at night flute, crickets and an owl
-    1: {
-      bpm: 108, steps: 16, bars: 4, roots: [60, 57, 53, 55],
-      mel: [[0, -1, 2, -1, 4, 3, 2, -1, 0, -1, 2, 4, 5, -1, 4, -1], [4, -1, 3, 2, 0, -1, 2, -1, 3, -1, 2, -1, 0, -1, -1, -1],
-        [2, -1, 4, -1, 5, 4, 3, -1, 2, -1, 4, -1, 3, -1, 2, -1], [3, -1, 2, -1, 0, -1, 2, 3, 4, -1, 3, -1, 2, -1, 1, -1]],
-      light(s, bar, w, B) {
-        const r = this.roots[bar];
-        if (s === 0 || s === 6 || s === 8 || s === 11) I.kick(w, B, 0.16);
-        if (s === 3 || s === 10 || s === 14) I.tom(320, w, B, 0.07);
-        if (s % 2 === 1) I.shaker(w, B);
-        if (s % 4 === 0) I.marimba(r - 12 + (s === 8 ? 7 : 0), w, B, 0.09);
-        const m = this.mel[bar][s];
-        if (m >= 0) I.marimba(r + PENTA[m], w, B, 0.06);
-      },
-      dark(s, bar, w, B) {
-        const r = this.roots[bar] - 3;
-        if (s === 0 || s === 8) I.kick(w, B, 0.14);
-        if (s === 0) I.softPad([r - 12, r - 5], w, B, 2.2, 0.03);
-        if (s === 0 || s === 6 || s === 12) I.flute(r + [0, 3, 7, 10, 12][(bar + s) % 5], w, B, 0.04, 0.7);
-      },
-      amb: [[['bird', 0.35]], [['cricket', 0.7], ['owl', 0.04]]],
+    0: {   // Infinite World: house groove with an earworm pluck
+      bpm: 124, swing: 0, chords: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]],
+      drums: { kick: 'x...x...x...x...', clap: '....x.......x...', open: '..x...x...x...x.', shaker: 'xxxxxxxxxxxxxxxx' },
+      bass: { pat: '..x...x...x...x.', deg: [0, 0, 0, 0], inst: 'bass', oct: -12 },
+      hook: [[0, 81, 1], [2, 84, 1], [3, 81, 1], [6, 79, 2], [8, 76, 2], [11, 79, 1], [12, 81, 4], [16, 81, 1], [18, 84, 1], [19, 86, 1], [22, 84, 2], [24, 81, 2], [27, 79, 1], [28, 76, 4]],
+      lead: 'synth', arpB: true, padVol: 0.8, amb: [[['whoosh', 0.03]], [['hum', 0.04]]],
     },
-    // Deep Space: dreamy pads, twinkling arpeggios and a deep pulse; the dark side drones
-    2: {
-      bpm: 92, steps: 16, bars: 4, chords: [[50, 53, 57, 60, 64], [46, 50, 53, 57, 62], [41, 45, 48, 52, 55], [48, 52, 55, 59, 62]],
-      light(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0) { I.pad([c[1], c[2], c[3]], w, B, beat * 16, 0.022, 1300); I.sub(c[0] - 12, w, B, 0.14, beat * 14); }
-        if (s === 0 || s === 8) I.kick(w, B, 0.08);
-        I.pluck(c[[0, 2, 4, 3, 1, 3, 2, 4][s % 8]] + 12 + (s >= 8 ? 12 : 0), w, B, 0.025);
-      },
-      dark(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0) I.pad([c[0] - 12, c[0] - 5], w, B, beat * 16, 0.03, 420);
-        if (s % 4 === 0) I.sub(c[0] - 24, w, B, 0.12, beat * 3);
-        if (s === 6 || (s === 14 && bar % 2)) I.bell(c[2] + 13, w, B, 0.02, 2.5);
-      },
-      amb: [[['radio', 0.25], ['whoosh', 0.05]], [['hum', 0.05], ['radio', 0.08]]],
+    1: {   // Jungle: tropical bounce, congas and a marimba hook
+      bpm: 108, swing: 0.1, chords: C_MAJ,
+      drums: { kick: 'x...x...x...x...', rim: '...x..x....x..x.', shaker: '.x.x.x.x.x.x.x.x', conga: 'x.....x.x...x...' },
+      bass: { pat: 'x..x....x..x....', deg: [0, 0, 7, 5], inst: 'bass', oct: -12 },
+      hook: [[0, 72, 1], [2, 76, 1], [4, 79, 2], [6, 76, 1], [8, 81, 2], [10, 79, 1], [12, 76, 2], [14, 74, 1], [16, 72, 1], [18, 74, 1], [20, 76, 2], [22, 74, 1], [24, 72, 2], [28, 67, 2]],
+      hookB: [[0, 84, 1], [2, 81, 1], [4, 79, 2], [6, 81, 1], [8, 84, 2], [12, 86, 2], [16, 84, 1], [18, 81, 1], [20, 79, 2], [24, 76, 2], [26, 79, 1], [28, 72, 4]],
+      lead: 'marimba', padVol: 0.6, amb: [[['bird', 0.3]], [['cricket', 0.6], ['owl', 0.04]]],
     },
-    // Time Rift: a ticking waltz with music box and harpsichord; the future side pulses
-    3: {
-      bpm: 132, steps: 12, bars: 4, chords: [[57, 60, 64], [62, 65, 69], [55, 59, 62], [60, 64, 67]],
-      tune: [[12, -1, 7, -1, 4, 7], [9, -1, 5, -1, 2, 5], [11, -1, 7, -1, 2, 7], [12, -1, 16, -1, 12, -1]],
-      light(s, bar, w, B) {
-        const c = this.chords[bar];
-        if (s % 4 === 0) I.tick(w, B, s === 0, 0.05);
-        if (s === 0) I.harpsi(c[0] - 12, w, B, 0.05);
-        if (s === 4 || s === 8) c.forEach(n => I.harpsi(n, w, B, 0.022));
-        if (s % 2 === 0) { const m = this.tune[bar][s / 2]; if (m >= 0) I.musicBox(c[0] + m, w, B, 0.04); }
-      },
-      dark(s, bar, w, B) {
-        const c = this.chords[bar];
-        if (s % 4 === 0) I.tick(w, B, s === 0, 0.04);
-        if (s === 0) I.sub(c[0] - 24, w, B, 0.14, 1.2);
-        if (s % 2 === 0) tone(NOTE(c[(s / 2) % 3] + 12), 0.18, { type: 'square', vol: 0.016, when: w, bus: B, filter: 1500 });
-        if (s === 6) I.bell(c[2] + 12, w, B, 0.02);
-      },
-      amb: [[['chime', 0.05], ['clank', 0.15]], [['clank', 0.1], ['radio', 0.1]]],
+    2: {   // Deep Space: synth-pop
+      bpm: 116, swing: 0, chords: [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55]],
+      drums: { kick: 'x.......x.x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' },
+      bass: { pat: 'x.x.x.x.x.x.x.x.', deg: [0, 12, 0, 12, 0, 12, 0, 12], inst: 'bass', oct: -12 },
+      hook: [[0, 74, 2], [2, 77, 2], [4, 81, 3], [8, 79, 1], [9, 77, 1], [10, 76, 2], [12, 74, 4], [16, 74, 2], [18, 77, 2], [20, 84, 3], [24, 81, 2], [26, 79, 2], [28, 77, 4]],
+      lead: 'synth', arpB: true, padVol: 1, amb: [[['radio', 0.2]], [['hum', 0.05]]],
     },
-    // Toxic Chaos: bouncy bass and bubbly blips; the dark side wobbles
-    4: {
-      bpm: 112, steps: 16, bars: 4, roots: [52, 53, 52, 50], scale: [0, 1, 3, 5, 7, 8, 10, 12],
-      light(s, bar, w, B) {
-        const r = this.roots[bar];
-        if ([0, 3, 6, 8, 11, 14].includes(s)) tone(NOTE(r - 12), 0.22, { type: 'triangle', vol: 0.13, to: NOTE(r - 13), when: w, bus: B });
-        if (s === 4 || s === 12) I.snare(w, B, 0.04);
-        if (s % 2 === 0) I.hat(w, B);
-        if ((s * 7 + bar) % 5 === 0) { const n = r + 12 + this.scale[(s + bar * 3) % 8]; tone(NOTE(n), 0.12, { vol: 0.04, to: NOTE(n) * 1.5, when: w, bus: B }); }
-      },
-      dark(s, bar, w, B) {
-        const r = this.roots[bar];
-        if (s % 4 === 0) tone(NOTE(r - 24), 0.5, { type: 'sawtooth', vol: 0.07, to: NOTE(r - 22), when: w, bus: B, filter: 380 });
-        if (s === 8) I.kick(w, B, 0.14);
-        if (s === 10 || s === 15) tone(NOTE(r + 24), 0.05, { type: 'square', vol: 0.012, when: w, bus: B, filter: 3000 });
-      },
-      amb: [[['bubbles', 0.45]], [['bubbles', 0.3], ['squeak', 0.25]]],
+    3: {   // Time Rift: electro-swing with a walking bass and a clock tick
+      bpm: 126, swing: 0.22, chords: [[57, 60, 64], [50, 53, 57], [52, 56, 59], [57, 60, 64]],
+      drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: '..x...x...x...x.', tick: 'x...x...x...x...' },
+      bass: { pat: 'x...x...x...x...', deg: [0, 3, 7, 10], inst: 'upright', oct: -12 },
+      hook: [[0, 76, 1], [1, 77, 1], [2, 76, 1], [4, 72, 2], [6, 69, 2], [8, 71, 1], [9, 72, 1], [10, 71, 1], [12, 68, 2], [14, 64, 2], [16, 69, 1], [18, 72, 1], [20, 76, 2], [22, 81, 2], [24, 80, 1], [26, 76, 1], [28, 72, 4]],
+      lead: 'harpsi', padVol: 0.5, amb: [[['chime', 0.04], ['clank', 0.12]], [['clank', 0.08]]],
     },
-    // Volcanic Collapse: taiko drums, brass stabs and tension; rumbles and crackling fire
-    5: {
-      bpm: 126, steps: 16, bars: 4, roots: [50, 46, 48, 45],
-      light(s, bar, w, B) {
-        const r = this.roots[bar], beat = 60 / bpm / 4;
-        if ([0, 3, 8, 10, 11].includes(s)) I.taiko(w, B, s === 0 ? 0.32 : 0.22);
-        if (s === 6 || s === 14) I.tom(150, w, B, 0.1);
-        if (s === 0) { I.brass([r - 12, r - 5], w, B, 0.045, 0.6); I.softPad([r, r + 3, r + 7], w, B, beat * 16, 0.022); }
-        if (s === 10 && bar % 2) I.brass([r - 12, r - 5, r], w, B, 0.04, 0.35);
-      },
-      dark(s, bar, w, B) {
-        const r = this.roots[bar], beat = 60 / bpm / 4;
-        if (s % 4 === 0) I.taiko(w, B, 0.26);
-        if (s === 0) I.pad([r - 12, r - 9], w, B, beat * 16, 0.03, 500);
-        if (s === 12) I.brass([r - 24 + 12], w, B, 0.05, 0.8);
-      },
-      amb: [[['rumble', 0.08], ['crackle', 0.4]], [['rumble', 0.1], ['crackle', 0.25]]],
+    4: {   // Toxic Chaos: funk with slap bass and clav stabs
+      bpm: 104, swing: 0.16, chords: [[52, 55, 59, 62], [57, 61, 64, 67], [52, 55, 59, 62], [59, 63, 66, 69]],
+      drums: { kick: 'x..x..x...x..x..', snare: '....x..x....x...', hat: 'XxXxXxXxXxXxXxXx' },
+      bass: { pat: 'x..x..xx..x..x..', deg: [0, 0, 12, 10, 7, 5], inst: 'slap', oct: -12 },
+      stabs: '..x..x....x..x..', stabInst: 'clav',
+      hook: [[6, 79, 1], [7, 81, 1], [14, 83, 2], [22, 81, 1], [23, 79, 1], [30, 76, 2]],
+      lead: 'chip', padVol: 0.3, amb: [[['bubbles', 0.35]], [['bubbles', 0.25], ['squeak', 0.2]]],
+    },
+    5: {   // Volcanic Collapse: epic rock with taiko and brass
+      bpm: 138, swing: 0, chords: [[50, 53, 57], [46, 50, 53], [48, 52, 55], [45, 49, 52]],
+      drums: { kick: 'x...x.x.x...x.x.', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', taiko: 'x.......x.......' },
+      bass: { pat: 'x.x.x.x.x.x.x.x.', deg: [0, 0, 0, 0, 0, 0, 7, 5], inst: 'bass', oct: -12 },
+      hook: [[0, 74, 3], [3, 72, 1], [4, 74, 2], [6, 77, 2], [8, 76, 4], [12, 72, 4], [16, 74, 3], [19, 72, 1], [20, 69, 2], [22, 72, 2], [24, 74, 8]],
+      lead: 'brass', padVol: 0.8, amb: [[['rumble', 0.06], ['crackle', 0.3]], [['rumble', 0.08]]],
+    },
+    6: {   // Candy Kingdom: bubblegum pop with a chiptune hook
+      bpm: 128, swing: 0, chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
+      drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: '..x...x...x...x.' },
+      bass: { pat: 'x.x.x.x.x.x.x.x.', deg: [0, 12, 0, 12, 0, 12, 0, 12], inst: 'bass', oct: -12 },
+      hook: [[0, 84, 1], [1, 84, 1], [2, 79, 1], [4, 81, 1], [6, 79, 1], [8, 84, 2], [10, 86, 2], [12, 88, 4], [16, 86, 1], [17, 86, 1], [18, 84, 1], [20, 81, 1], [22, 79, 1], [24, 81, 2], [26, 79, 2], [28, 76, 4]],
+      lead: 'chip', sparkle: true, padVol: 0.6, amb: [[['pop', 0.25]], [['squeak', 0.12]]],
+    },
+    7: {   // Rainbow Skies: ukulele strums and a whistled tune
+      bpm: 118, swing: 0.12, chords: C_MAJ,
+      drums: { kick: 'x.......x.......', clap: '....x.......x...', shaker: 'x.x.x.x.x.x.x.x.' },
+      bass: { pat: 'x.......x.......', deg: [0, 7], inst: 'bass', oct: -12 },
+      strum: 'x..x..x...x..x..',
+      hook: [[0, 76, 2], [2, 79, 2], [4, 84, 4], [8, 83, 2], [10, 81, 2], [12, 79, 4], [16, 77, 2], [18, 76, 2], [20, 74, 2], [22, 76, 2], [24, 72, 6]],
+      lead: 'whistle', padVol: 0.4, amb: [[['bird', 0.25]], [['cricket', 0.4]]],
+    },
+    8: {   // The Monster King: fast, heavy and dramatic
+      bpm: 150, swing: 0, chords: [[50, 53, 57], [50, 53, 57], [46, 50, 53], [45, 49, 52]],
+      drums: { kick: 'x...x.x.x...x.x.', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', taiko: 'x.....x.x.....x.' },
+      bass: { pat: 'xx.xx.xx.xx.xx.x', deg: [0, 0, 12, 0, 0, 12, 0, 1, 0, 0, 12], inst: 'bass', oct: -12 },
+      hook: [[0, 74, 2], [3, 74, 1], [4, 77, 2], [8, 76, 2], [11, 74, 1], [12, 73, 4], [16, 74, 2], [19, 74, 1], [20, 81, 2], [24, 79, 2], [27, 77, 1], [28, 76, 4]],
+      lead: 'brass', padVol: 1, amb: [[['growl', 0.06], ['crackle', 0.15]], [['growl', 0.08]]],
     },
   };
 
-  // levels 6-8
-  Object.assign(SONGS, {
-    // Candy Kingdom: bouncy, sparkly and sweet; the sour side goes off-key and spooky
-    6: {
-      bpm: 124, steps: 16, bars: 4, chords: [[60, 64, 67], [65, 69, 72], [67, 71, 74], [57, 60, 64]],
-      light(s, bar, w, B) {
-        const c = this.chords[bar];
-        if (s % 4 === 0) I.kick(w, B, 0.13);
-        if (s === 4 || s === 12) { I.snare(w, B, 0.035); noise(0.05, { vol: 0.03, freq: 2400, when: w + 0.01, bus: B }); }
-        if (s % 2 === 1) I.hat(w, B, 0.012);
-        if ([0, 3, 6, 8, 10, 14].includes(s)) I.bass(c[0] - 24 + (s === 10 ? 7 : 0), w, B, 0.1, 0.2);
-        if (s % 2 === 0) I.musicBox(c[[0, 1, 2, 1, 2, 0, 1, 2][s / 2]] + 12 + (s >= 8 ? 12 : 0), w, B, 0.03);
-      },
-      dark(s, bar, w, B) {
-        const c = this.chords[bar];
-        if (s === 0 || s === 8) I.kick(w, B, 0.12);
-        if (s === 0) I.softPad([c[0] - 13, c[2] - 12], w, B, 2, 0.03);
-        if (s === 3 || s === 7 || s === 13) I.bell(c[1] + 11 + (s === 13 ? 6 : 0), w, B, 0.022, 1.4);
-      },
-      amb: [[['pop', 0.3]], [['squeak', 0.15], ['owl', 0.03]]],
-    },
-    // Rainbow Skies: sunny and carefree: ukulele strums, a whistled tune, claps and sparkles; at night a starry lullaby
-    7: {
-      bpm: 118, steps: 16, bars: 4, chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
-      tune: [[12, -1, 16, -1, 19, -1, 16, 14, 12, -1, -1, -1, 14, -1, 16, -1], [14, -1, 11, -1, 7, -1, 11, 14, 19, -1, -1, -1, 17, -1, 14, -1],
-        [16, -1, 12, -1, 9, -1, 12, 16, 21, -1, 19, -1, 16, -1, 12, -1], [17, -1, 16, -1, 14, -1, 12, -1, 9, -1, 12, -1, 14, -1, -1, -1]],
-      light(s, bar, w, B) {
-        const c = this.chords[bar];
-        if (s === 0 || s === 8) I.kick(w, B, 0.12);
-        if (s === 4 || s === 12) for (let k = 0; k < 3; k++) noise(0.05, { vol: 0.03, freq: 2200 + k * 400, when: w + k * 0.008, bus: B });   // claps
-        if (s % 2 === 1) I.shaker(w, B, 0.012);
-        if ([0, 3, 6, 8, 10, 12, 14].includes(s)) c.forEach((n, k) => I.pluck(n + (s % 4 === 2 ? 12 : 0), w + k * 0.012, B, 0.022));   // ukulele strum
-        if (s === 0 || s === 8) I.bass(c[0] - 12, w, B, 0.1, 0.35);
-        const m = this.tune[bar][s];
-        if (m >= 0) tone(NOTE(c[0] + m), 0.22, { vol: 0.035, when: w, bus: B, attack: 0.03 });   // whistle
-        if (s === 15 && bar === 3) [84, 88, 91, 96].forEach((n, k) => I.bell(n, w + k * 0.05, B, 0.012, 0.8));   // sparkle run
-      },
-      dark(s, bar, w, B) {
-        const c = this.chords[bar], beat = 60 / bpm / 4;
-        if (s === 0) I.softPad([c[0] - 12, c[1] - 12, c[2] - 12], w, B, beat * 16, 0.028);
-        if (s % 4 === 0) I.musicBox(c[(s / 4) % 3] + 24, w, B, 0.022);
-        if (s === 10) I.bell(c[2] + 12, w, B, 0.016, 2);
-      },
-      amb: [[['bird', 0.25]], [['cricket', 0.4]]],
-    },
-    // The Monster King: heavy war drums, low brass, a dark choir and tremolo strings
-    8: {
-      bpm: 138, steps: 16, bars: 4, roots: [50, 50, 46, 45],
-      light(s, bar, w, B) {
-        const r = this.roots[bar], beat = 60 / bpm / 4;
-        if ([0, 3, 8, 11].includes(s)) I.taiko(w, B, s === 0 ? 0.34 : 0.24);
-        if (s === 6 || s === 14) I.tom(130, w, B, 0.12);
-        if (s % 2 === 1) I.hat(w, B, 0.01);
-        tone(NOTE(r - 12 + (s % 4 === 3 ? 1 : 0)), beat * 0.9, { type: 'sawtooth', vol: 0.018, when: w, bus: B, filter: 700 });   // tremolo strings
-        if (s === 0) { I.brass([r - 24, r - 17, r - 12], w, B, 0.045, 0.9); I.softPad([r, r + 3, r + 7], w, B, beat * 16, 0.026); }
-        if (s === 12 && bar % 2) I.brass([r - 12 + 1, r - 5 + 1], w, B, 0.04, 0.35);
-      },
-      dark(s, bar, w, B) {
-        const r = this.roots[bar], beat = 60 / bpm / 4;
-        if (s % 4 === 0) I.taiko(w, B, 0.28);
-        if (s === 0) I.pad([r - 24, r - 21, r - 18], w, B, beat * 16, 0.03, 450);
-        if (s === 8) I.bell(r + 13, w, B, 0.025, 2);
-      },
-      amb: [[['growl', 0.08], ['crackle', 0.2]], [['growl', 0.1], ['rumble', 0.05]]],
-    },
-  });
+  // ----- sequencer (16th notes, scheduled slightly ahead; a touch of swing and human timing) -----
+  function playStep(w, s, bar, cycle, sd) {
+    const S = song, chord = S.chords[bar % S.chords.length], root = chord[0];
+    const hum = () => (rnd() - 0.5) * 0.008;
+    // drums
+    for (const k in S.drums) {
+      const ch = S.drums[k][s];
+      if (ch === 'x' || ch === 'X') DRUM[k](w, (ch === 'X' ? 1 : 0.7) * (0.85 + rnd() * 0.3));
+    }
+    // bass
+    const B = S.bass;
+    if (B && B.pat[s] === 'x') {
+      const hit = [...B.pat.slice(0, s)].filter(c => c === 'x').length;
+      INST[B.inst](root + B.oct + B.deg[hit % B.deg.length], w, sd * 1.8, 1);
+    }
+    // chord stabs / ukulele strums / pad
+    if (S.stabs && S.stabs[s] === 'x') chord.forEach(n => INST[S.stabInst](n + 12, w, sd, 0.8));
+    if (S.strum && S.strum[s] === 'x') chord.forEach((n, i) => INST.pluck(n + 12, w + i * 0.014, sd * 2, 0.75));
+    if (s === 0 && S.padVol) pad(chord.map(n => n), w, sd * 16, S.padVol);
+    // melody: the hook, a variation every other cycle, and arpeggios on the B part
+    const hook = cycle % 2 && S.hookB ? S.hookB : S.hook;
+    const pos = (bar % 2) * 16 + s;
+    for (const [at, n, len] of hook) if (at === pos) INST[S.lead](n + (cycle % 4 === 3 && !S.hookB ? 12 : 0), w + hum(), len * sd, 0.9 + rnd() * 0.2);
+    if (S.arpB && cycle % 2 === 1 && s % 2 === 0) INST.pluck(chord[(s / 2) % chord.length] + 24, w, sd, 0.5);
+    if (S.sparkle && s === 14 && bar === 3) [84, 88, 91].forEach((n, k) => INST.glock(n, w + k * 0.05, sd, 0.6));
+    // the Dark World layer: a low drone and a lonely bell
+    if (s === 0) tone(NOTE(root - 24), sd * 16, { type: 'sawtooth', vol: 0.05, when: w, bus: darkBus, attack: 0.4, filter: 320 });
+    if (s === 6 && bar % 2 === 0) tone(NOTE(root + 15), 2.2, { vol: 0.02, when: w, bus: darkBus });
+    // final escape / boss rage: a driving extra layer
+    if (intensity > 0) { DRUM.hat(w + sd / 2, 0.6 * intensity); if (s % 4 === 2) DRUM.tom(w, 0.8 * intensity); }
+  }
 
-  // Level 0, the Infinite World: a dreamy, driving trance that never gets old
-  SONGS[0] = {
-    bpm: 126, steps: 16, bars: 4, chords: [[53, 57, 60, 64], [48, 52, 55, 60], [55, 59, 62, 67], [57, 60, 64, 69]],
-    light(s, bar, w, B) {
-      const c = this.chords[bar], beat = 60 / bpm / 4;
-      if (s % 4 === 0) I.kick(w, B, 0.12);
-      if (s % 4 === 2) I.hat(w, B, 0.018);
-      if (s % 4 === 2) I.bass(c[0] - 24, w, B, 0.09, beat * 1.6);
-      tone(NOTE(c[[0, 1, 2, 3, 2, 1, 3, 2][s % 8]] + 12 + (s >= 8 ? 12 : 0)), beat * 0.9, { vol: 0.022, when: w, bus: B });
-      if (s === 0) I.pad([c[0], c[1], c[2]], w, B, beat * 16, 0.016, 1800);
-      if (s === 14 && bar === 3) [84, 88, 91].forEach((n, k) => I.bell(n, w + k * 0.06, B, 0.012, 1));
-    },
-    dark(s, bar, w, B) {
-      const c = this.chords[bar], beat = 60 / bpm / 4;
-      if (s % 4 === 0) I.kick(w, B, 0.1);
-      if (s === 0) { I.sub(c[0] - 24, w, B, 0.12, beat * 14); I.pad([c[0] - 12, c[2] - 12], w, B, beat * 16, 0.025, 600); }
-      if (s % 2 === 0) tone(NOTE(c[(s / 2) % 4] + 12), beat * 1.5, { vol: 0.016, when: w, bus: B, filter: 1400, type: 'triangle' });
-      if (s === 6 || s === 13) I.bell(c[3] + 12, w, B, 0.016, 2);
-    },
-    amb: [[['whoosh', 0.04]], [['hum', 0.04]]],
-  };
-
-  // ----- music sequencer (scheduled slightly ahead for tight timing) -----
   function schedule() {
     if (!song) return;
     const sd = 60 / bpm / 4;
     while (nextT < ctx.currentTime + 0.15) {
-      const s = step % song.steps, bar = Math.floor(step / song.steps) % song.bars;
-      song.light(s, bar, nextT, lightBus);
-      song.dark(s, bar, nextT, darkBus);
-      // ambient sounds, checked once per beat
+      if (nextT < ctx.currentTime - 0.3) nextT = ctx.currentTime + 0.02;   // woke up late (background tab): skip ahead, no pile-up
+      const s = step % 16, bar = Math.floor(step / 16) % 4, cycle = Math.floor(step / 64);
+      const w = nextT + (s % 2 ? song.swing * sd : 0);
+      playStep(w, s, bar, cycle, sd);
       if (s % 4 === 0) {
         song.amb.forEach((list, wi) => {
-          for (const [name, p] of list) if (Math.random() < p) AMB[name](nextT + Math.random() * sd * 3, wi ? darkBus : lightBus);
+          for (const [name, p] of list) if (rnd() < p) AMB[name](nextT + rnd() * sd * 3, wi ? ambDark : ambLight);
         });
-      }
-      // intensity layer (final escape): driving hats and toms on both layers
-      if (intensity > 0) {
-        I.hat(nextT, musicBus, 0.025 * intensity);
-        if (s % 4 === 2) I.tom(140, nextT, musicBus, 0.12 * intensity);
       }
       nextT += sd;
       step++;
     }
+  }
+  function startTimer() {
+    if (!ctx || timer) return;
+    if (!song) song = SONGS.menu;
+    nextT = ctx.currentTime + 0.06;
+    timer = setInterval(schedule, 40);
   }
 
   const Sound = {
@@ -360,24 +286,22 @@
       bpm = song.bpm;
     },
     get songTempo() { return song ? song.bpm : 100; },
-    musicStart() {
-      if (!ctx) return;
-      if (!song) this.setSong('menu');
-      if (timer) return;
-      nextT = ctx.currentTime + 0.06;
-      timer = setInterval(schedule, 40);
-    },
-    musicStop() { clearInterval(timer); timer = null; },
+    /** Starts the music; before the first tap it waits and starts as soon as sound is allowed. */
+    musicStart() { wantMusic = true; startTimer(); },
+    musicStop() { wantMusic = false; clearInterval(timer); timer = null; },
     setIntensity(v) { intensity = v; },
     /** Speed the current song up or down (time pads, final escape). */
     setTempoScale(k) { tempoScale = k; bpm = (song ? song.bpm : 100) * k; },
     setTempo(t) { bpm = t; },
-    /** 0 = Light music, 1 = Dark music */
+    /** 0 = Light World (open and bright), 1 = Dark World (muffled, with a spooky drone) */
     setWorldMix(m) {
       if (!ctx || Math.abs(m - mixTarget) < 0.01) return;
       mixTarget = m;
-      lightBus.gain.setTargetAtTime(Math.cos(m * Math.PI / 2), ctx.currentTime, 0.06);
-      darkBus.gain.setTargetAtTime(Math.sin(m * Math.PI / 2), ctx.currentTime, 0.06);
+      const t = ctx.currentTime;
+      musicFilter.frequency.setTargetAtTime(9000 * Math.pow(1100 / 9000, m), t, 0.08);
+      darkBus.gain.setTargetAtTime(m, t, 0.08);
+      ambLight.gain.setTargetAtTime(1 - m, t, 0.08);
+      ambDark.gain.setTargetAtTime(m, t, 0.08);
     },
 
     // ----- effects -----
@@ -431,6 +355,23 @@
       seq.forEach((f, i) => { tone(f, 0.6, { type: 'triangle', vol: 0.11, at: i * 0.14 }); tone(f / 2, 0.6, { type: 'sine', vol: 0.09, at: i * 0.14 }); });
       [1046, 1318, 1568, 2093].forEach(f => tone(f, 2.2, { type: 'sine', vol: 0.05, at: 0.95, attack: 0.1 }));
     },
+    // a new level unlocks: the lock rattles, clicks open, and a fanfare plays
+    lockRattle() { [0, 0.09, 0.18, 0.3, 0.39].forEach(at => { noise(0.04, { vol: 0.09, freq: 2200, at, q: 5 }); tone(900, 0.04, { type: 'square', vol: 0.02, at, filter: 2000 }); }); },
+    unlock() {
+      noise(0.05, { vol: 0.2, freq: 1800, q: 4 }); tone(320, 0.12, { type: 'square', vol: 0.05, to: 180, filter: 1500 });   // clunk
+      noise(0.03, { vol: 0.15, freq: 4200, at: 0.08, q: 8 });                                                            // click
+      [1568, 2093, 2637].forEach((f, i) => tone(f, 0.3, { vol: 0.04, at: 0.15 + i * 0.05 }));                            // sparkle
+    },
+    fanfare() {
+      [[523, 0], [659, 0.12], [784, 0.24], [1046, 0.38]].forEach(([f, at]) => { tone(f, 0.25, { type: 'triangle', vol: 0.1, at }); tone(f / 2, 0.25, { type: 'sawtooth', vol: 0.03, at, filter: 1500 }); });
+      [523, 659, 784, 1046].forEach(f => { tone(f, 1.3, { type: 'triangle', vol: 0.07, at: 0.55, attack: 0.02 }); tone(f / 2, 1.3, { type: 'sawtooth', vol: 0.025, at: 0.55, filter: 1400 }); });
+      noise(0.3, { vol: 0.06, freq: 7000, type: 'highpass', at: 0.55 });
+    },
+    // opening animation
+    introTick(i) { tone(600 + i * 70, 0.07, { type: 'triangle', vol: 0.05, to: 900 + i * 70 }); },
+    introWhoosh() { noise(0.6, { vol: 0.1, freq: 300, sweep: 4000 }); },
+    introBoom() { tone(90, 0.9, { vol: 0.25, to: 40 }); noise(0.5, { vol: 0.1, freq: 400, type: 'lowpass' }); [523, 659, 784].forEach(f => tone(f, 1.4, { type: 'triangle', vol: 0.05, at: 0.05, attack: 0.02 })); },
+    introChime(i) { tone([1046, 1318, 1568][i] || 1568, 0.6, { vol: 0.05 }); tone(([1046, 1318, 1568][i] || 1568) * 2, 0.3, { vol: 0.015 }); },
   };
 
   DR.Sound = Sound;

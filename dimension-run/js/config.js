@@ -151,7 +151,7 @@
       shards: 3,
       chests: 4,
       gems: 2,
-      instability: 0.7,
+      instability: 0.85,
       intro: [
         { at: 175, pattern: 'introCollapse', hint: 'The path is collapsing: watch the cracks' },
       ],
@@ -174,7 +174,7 @@
       shards: 3,
       chests: 4,
       gems: 2,
-      instability: 0.8,
+      instability: 0.3,
       intro: [
         { at: 180, pattern: 'introMover', hint: 'Candy blocks slide around: keep your eyes open' },
       ],
@@ -197,7 +197,7 @@
       shards: 3,
       chests: 4,
       gems: 3,
-      instability: 0.9,
+      instability: 0.5,
       intro: [
         { at: 185, pattern: 'zigzag2', hint: 'Up in the clouds: switch fast, switch often!' },
       ],
@@ -228,7 +228,7 @@
       shards: 5,
       chests: 4,
       gems: 3,
-      instability: 1,
+      instability: 0.7,
       intro: [
         { at: 185, pattern: 'tutWallLight', hint: 'The Monster King throws obstacles: watch where they land!' },
         { at: 260, pattern: 'introWraith', hint: 'Grab the glowing shards to hit the boss!' },

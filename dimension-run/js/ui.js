@@ -438,12 +438,13 @@
           <div class="ul-text">LEVEL ${nextCfg.id}: ${nextCfg.name.toUpperCase()}</div>`;
         const card = u.querySelector('.unlock-card'), lock = u.querySelector('.ul-lock');
         clearTimeout(this.unlockT1); clearTimeout(this.unlockT2);
-        this.unlockT1 = setTimeout(() => card.classList.add('shaking'), 700);
+        this.unlockT1 = setTimeout(() => { card.classList.add('shaking'); DR.Sound.lockRattle(); }, 700);
         this.unlockT2 = setTimeout(() => {
           lock.textContent = '🔓';
           card.classList.remove('shaking', 'locked'); card.classList.add('open');
           u.querySelector('.ul-text').textContent = `🎉 LEVEL ${nextCfg.id} UNLOCKED: ${nextCfg.name.toUpperCase()}`;
-          DR.Sound.chest();
+          DR.Sound.unlock();
+          setTimeout(() => DR.Sound.fanfare(), 250);
         }, 1500);
       }
       $('nextBtn').classList.toggle('hidden', !nextCfg);

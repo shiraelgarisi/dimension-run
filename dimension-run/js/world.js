@@ -1516,7 +1516,7 @@
       this.sky.material.uniforms.uTime.value = t;
       this.sky.material.uniforms.uDanger.value = U.lerp(this.sky.material.uniforms.uDanger.value, view.danger || 0, U.damp(2, dt));
       this.sky.material.uniforms.uFlash.value = this.flashV;
-      this.sky.material.uniforms.uGlitch.value = this.lt.sky && this.lt.sky.glitch ? Math.min(1, this.glitch * 6) : 0;
+      this.sky.material.uniforms.uGlitch.value = 0;
       this.sun.position.set(x + 8, 20, z + 6);
       this.sun.target.position.set(x, 0, z - 10);
     }
@@ -2011,13 +2011,12 @@
       const inst = view.instability || 0;
       if (this.glitch > 0) this.glitch = Math.max(0, this.glitch - dt);
       // from level 4 the world rocks slowly from side to side, like a ship; stronger every level
-      const sway = inst * Math.sin(t * 1.05);
-      cam.position.x += sway * 0.7;
-      const roll = sway * 0.07 + (this.glitch > 0 ? (rnd() - 0.5) * 0.04 : 0);   // (a short shake only when a rift flips you)
+      // chaos levels: the original gentle tilt (no sideways drift, no random jitter)
+      const roll = inst * (Math.sin(t * 1.3) * 0.035 + Math.sin(t * 3.7) * 0.012);
       this.camRoll = U.lerp(this.camRoll, roll, U.damp(6, dt));
       cam.rotateZ(this.camRoll);
       const warpFov = sim.warp ? (sim.warp.kind === 'fast' ? 10 : -6) : 0;
-      const fov = this.baseFov + Math.max(0, sim.speed - 11) * 0.35 + warpFov;
+      const fov = this.baseFov + Math.max(0, sim.speed - 11) * 0.35 + inst * Math.sin(t * 0.9) * 1.5 + warpFov;
       if (Math.abs(cam.fov - fov) > 0.02) { cam.fov = U.lerp(cam.fov, fov, U.damp(3, dt)); cam.updateProjectionMatrix(); }
     }
 
@@ -2114,7 +2113,13 @@
       this.burst(this.playerPos(1), color, 14, { speed: 7, life: 0.4, grav: 0 });
       this.camera.fov += 4; this.camera.updateProjectionMatrix();
     }
-    riftFx() { this.shake = Math.max(this.shake, 0.3); this.glitch = 0.25; this.burst(this.playerPos(1.2), 0xff66ff, 24, { speed: 9, life: 0.5, grav: 0 }); }
+    riftFx() {
+      this.burst(this.playerPos(1.2), 0xff66ff, 24, { speed: 9, life: 0.5, grav: 0 });
+      const ring = new THREE.Mesh(this.G.torus, this.fxMat(0xff8aff));
+      ring.position.copy(this.playerPos(1.2)); this.scene.add(ring);
+      this.fx.push({ mesh: ring, t: 0, dur: 0.5, update: (m, u) => { m.position.z = this.runner.root.position.z; m.scale.setScalar(0.6 + u * 6); m.material.opacity = 1 - u; } });
+      this.camera.fov += 7; this.camera.updateProjectionMatrix();
+    }
     crashFx(kind) {
       this.shake = 0.8;
       if (kind !== 'gap') this.burst(this.playerPos(1), 0xffffff, 16, { speed: 6 });

@@ -188,7 +188,6 @@ test('each level introduces its signature mechanic', () => {
   for (let i = 4; i < tracks.length; i++) {
     const a = slideRate(tracks[i - 1].cfg), b = slideRate(tracks[i].cfg);
     assert(b > a, `sliding blocks per second L${i}=${a.toFixed(3)} L${i + 1}=${b.toFixed(3)}`);
-    assert(tracks[i].cfg.instability > tracks[i - 1].cfg.instability, `sway L${i + 1}`);
   }
   const last = tracks[tracks.length - 1];
   assert(last.cfg.boss && last.cfg.final && DR.LEVELS.filter(c => c.final).length === 1, 'only the last level is the boss / final level');

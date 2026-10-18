@@ -173,14 +173,21 @@
   // takes a picture of each level's world, then puts the menu scene back
   function makeThumbs() {
     if (TEST || AUTOPILOT || mode !== 'menu' || thumbs[1]) return;
-    for (let n = 0; n <= DR.LEVELS.length; n++) {
-      const tr = getTrack(n);
-      world.buildLevel(tr);
-      const s = new DR.Sim(tr);
-      s.player.d = tr.cfg.tutorial ? 30 : 70;
-      thumbs[n] = world.snapshot(s);
+    const cv = world.renderer.domElement;
+    if (!cv.width || !cv.height) { setTimeout(makeThumbs, 1000); return; }   // no screen size yet: try again soon
+    try {
+      for (let n = 0; n <= DR.LEVELS.length; n++) {
+        const tr = getTrack(n);
+        world.buildLevel(tr);
+        const s = new DR.Sim(tr);
+        s.player.d = tr.cfg.tutorial ? 30 : 70;
+        thumbs[n] = world.snapshot(s);
+      }
+    } catch (e) {
+      for (const k in thumbs) delete thumbs[k];   // pictures are a nice-to-have; never break the menu
+    } finally {
+      world.buildLevel(track);   // back to the menu's level
     }
-    world.buildLevel(track);   // back to the menu's level
   }
 
   function showLevels() {
@@ -401,7 +408,7 @@
         case 'switch': tutDid('switch'); mission('switches', 1); Sound.switchTo(e.world); world.switchFx(e.world); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
         case 'switchDenied': Sound.denied(); UI.denied(); break;
         case 'ready': if (track.cfg.cooldown > 0) Sound.ready(); break;
-        case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
+        case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); break;
         case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); mission('coins', 1); break;
         case 'gem': Sound.gem(); world.hideGem(e.index); save.addGems(e.value); mission('gems', 1); UI.banner(`💎 +${e.value}`, 'milestone gem', 700); break;
         case 'shield': Sound.shield(); world.shieldFx(); UI.flash('w'); UI.banner('🛡️ SHIELD!<small>IT SAVED YOU</small>', 'milestone', 900); break;
@@ -645,26 +652,48 @@
   }
 
   // the opening: the name flies in letter by letter, then the tagline, then the menu pops in
+  // Browsers only allow sound after a tap, so the opening starts with TAP TO START;
+  // the tap turns the sound on and plays the intro with its sounds, then the menu and its music.
   function playSplash() {
-    const sp = document.getElementById('splash');
+    const sp = document.getElementById('splash'), btn = document.getElementById('spStart');
     for (const word of sp.querySelectorAll('.sp-logo span')) {
       word.innerHTML = [...word.textContent].map((c, i) => `<i class="ch" style="--i:${i}">${c}</i>`).join('');
     }
-    sp.classList.remove('hidden');
-    let done = false;
+    btn.disabled = false;
+    btn.textContent = '▶ TAP TO START';
+    Sound.musicStop();   // the menu music starts when the menu appears
+    let started = false, done = false;
+    const timers = [];
     const finish = () => {
       if (done) return;
       done = true;
+      timers.forEach(clearTimeout);
+      Sound.introWhoosh();
       sp.classList.add('out');
       const panel = document.querySelector('#menu .panel');
       panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter');
       setTimeout(() => sp.classList.add('hidden'), 800);
       splashing = false;
+      Sound.setSong('menu');
+      Sound.musicStart();
       if (dailyAfterSplash) setTimeout(() => { if (mode === 'menu' && UI.current === 'menu') showDaily(); }, 1300);
     };
-    setTimeout(finish, 3900);
-    sp.addEventListener('pointerdown', finish);
-    window.addEventListener('keydown', finish, { once: true });
+    const start = e => {
+      if (e) e.preventDefault();
+      if (started) { finish(); return; }   // a second tap skips the rest
+      started = true;
+      Sound.init();
+      sp.classList.remove('pre');
+      sp.classList.add('go');
+      // sounds in time with the animation: a tick per letter, a boom when RUN lands, a chime per phrase
+      'DIMENSION'.split('').forEach((c, i) => timers.push(setTimeout(() => Sound.introTick(i), 250 + i * 65 + 200)));
+      'RUN'.split('').forEach((c, i) => timers.push(setTimeout(() => Sound.introTick(10 + i), 1050 + i * 110 + 200)));
+      timers.push(setTimeout(() => Sound.introBoom(), 1750));
+      [2050, 2500, 2950].forEach((t, i) => timers.push(setTimeout(() => Sound.introChime(i), t + 150)));
+      timers.push(setTimeout(finish, 4100));
+    };
+    sp.addEventListener('pointerdown', start);
+    window.addEventListener('keydown', function onKey(e) { if (done) { window.removeEventListener('keydown', onKey); return; } start(e); });
   }
 
   // "so close!" lines for the game-over screen: the reasons to try once more
@@ -747,7 +776,8 @@
   world.applyOutfit(save.data.equipped);
   toMenu();
   // opening animation (not for test links or links straight into a level)
-  if (!TEST && !AUTOPILOT && !params.has('level')) playSplash();
+  if (splashing) playSplash();
+  else document.getElementById('splash').classList.add('hidden');
   setTimeout(makeThumbs, 600);   // level pictures are ready before the player opens the level list
   if (params.has('level')) {
     const n = U.clamp(parseInt(params.get('level'), 10) || 0, 0, DR.LEVELS.length);
