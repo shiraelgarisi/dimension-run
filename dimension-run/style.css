@@ -372,3 +372,37 @@ body[data-level="0"] { --accent: #b07aff; --accent-2: #9ae8ff; }
 @keyframes coachTapDown { 0%, 100% { transform: rotate(180deg) translateY(0); } 50% { transform: rotate(180deg) translateY(-10px); } }
 @keyframes coachGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 224, 102, 0.9); } 50% { box-shadow: 0 0 0 10px rgba(255, 224, 102, 0); } }
 @media (max-width: 720px) { .coach-text { white-space: normal; max-width: 70vw; text-align: center; } }
+
+/* ---------- level cards with a picture of the world ---------- */
+.level-card { background-size: cover; background-position: center; overflow: hidden; }
+.level-card.has-pic { justify-content: flex-end; }
+.level-card.has-pic::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 4, 24, 0) 0%, rgba(10, 4, 24, 0.15) 40%, rgba(10, 4, 24, 0.85) 100%); pointer-events: none; }
+.level-card.has-pic > * { position: relative; z-index: 1; }
+.level-card.has-pic .num { position: absolute; top: 6px; left: 0; right: 0; font-family: 'Bungee', sans-serif; font-weight: 400; font-size: 56px; color: #fff !important; text-shadow: 0 0 18px rgba(0, 0, 0, 0.9), 0 3px 8px rgba(0, 0, 0, 0.8); }
+.level-card.has-pic .diff, .level-card.has-pic .lbest { color: #e8e0ff; }
+.level-card.locked.has-pic { filter: none; opacity: 1; }
+.level-card.locked.has-pic::after { content: ''; position: absolute; inset: 0; backdrop-filter: blur(3px) grayscale(1); -webkit-backdrop-filter: blur(3px) grayscale(1); background: rgba(10, 4, 24, 0.55); z-index: 0; }
+.level-card.locked.has-pic .lock { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); font-size: 40px; z-index: 2; }
+.level-card.locked.has-pic .num { opacity: 0.6; }
+.level-card.endless.has-pic .num { font-size: 60px; }
+
+/* ---------- next level unlocks on the complete screen ---------- */
+#cUnlock { margin: 8px 0; }
+.unlock-card { position: relative; height: 140px; border-radius: 14px; background: linear-gradient(135deg, #3a2a6a, #1a0a3a) center / cover; border: 2px solid rgba(255, 255, 255, 0.3); overflow: hidden; transition: filter 0.6s, box-shadow 0.6s, transform 0.3s; animation: pop 0.45s ease-out; }
+.unlock-card.locked { filter: grayscale(1) blur(2px) brightness(0.55); }
+.unlock-card.open { filter: none; border-color: #ffe066; box-shadow: 0 0 30px rgba(255, 224, 102, 0.7); transform: scale(1.03); }
+.unlock-card.shaking { animation: lockShake 0.5s ease-in-out 2; }
+.ul-num { position: absolute; left: 12px; bottom: 4px; font-family: 'Bungee', sans-serif; font-size: 54px; color: #fff; text-shadow: 0 0 16px rgba(0, 0, 0, 0.9); }
+.ul-lock { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 52px; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.8)); transition: transform 0.5s, opacity 0.8s 0.4s; }
+.unlock-card.open .ul-lock { transform: translate(-50%, -110%) rotate(-20deg) scale(1.2); opacity: 0; }
+.ul-text { margin-top: 8px; color: var(--good); font-weight: 700; letter-spacing: 1px; }
+@keyframes lockShake { 20% { transform: rotate(-3deg); } 40% { transform: rotate(3deg); } 60% { transform: rotate(-2deg); } 80% { transform: rotate(2deg); } }
+
+/* ---------- NEW items ---------- */
+button.item { position: relative; overflow: visible; }
+button.item.is-new { border-color: #6cf08a; box-shadow: 0 0 14px rgba(108, 240, 138, 0.6); animation: tutPulse 1.2s ease-in-out infinite; }
+.new-badge { position: absolute; top: -7px; right: -6px; padding: 2px 6px; border-radius: 8px; background: #ff3a6a; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
+#wardrobeBtn.has-new::after { content: 'NEW'; margin-left: 8px; padding: 2px 6px; border-radius: 8px; background: #ff3a6a; color: #fff; font-size: 10px; vertical-align: 2px; }
+.level-card.has-pic .name { margin-top: auto; font-size: 15px; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9); }
+.level-card.has-pic .lbest { margin-top: 0; }
+.level-card.has-pic .diff { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9); }

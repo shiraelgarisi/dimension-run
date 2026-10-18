@@ -20,6 +20,7 @@
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
   let level = 1, track = null, sim = null, bot = null;
   let bossHits = 0;
+  const thumbs = {};   // level id -> picture of its world (made once, on the menu)
   let tut = null;   // the guided tutorial: { then: level to play next, done: Set of rows, waiting: row or null }
   let wardrobeOpen = false, padHints = {}, prizes = [];   // prizes: items won in this run, revealed at the end
   let countdownStep = -1, milestone = 0, finaleShown = false, debrisT = 0, fireworkT = 0, victoryFx = false, menuSwitchT = 0;
@@ -71,6 +72,9 @@
   function showWardrobe() {
     wardrobeOpen = true;
     if (save.data.onboard.wardrobe === 1) { save.data.onboard.wardrobe = 2; save.write(); }   // the guide to the wardrobe has done its job
+    // items won since the last visit wear a NEW badge during this visit
+    const fresh = new Set(save.data.newItems);
+    if (fresh.size) { save.data.newItems = []; save.write(); }
     const render = () => UI.renderWardrobe(save, (slot, id) => {
       if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); if (slot === 'back') world.showBackT = 3; world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
     }, (slot, id) => {   // buying a pet with diamonds
@@ -79,7 +83,7 @@
         world.burst(world.playerPos(0.8), 0x7ae8ff, 30, { speed: 6, up: 4, life: 0.8 });
         render(); UI.renderMenu(save, nextLevelToPlay());
       } else Sound.denied();
-    });
+    }, fresh);
     render();
     UI.show('wardrobe');
     // dressing up happens in the Light World; the button flips it only when you ask
@@ -118,8 +122,22 @@
     Sound.musicStart();
   }
 
+  // takes a picture of each level's world, then puts the menu scene back
+  function makeThumbs() {
+    if (TEST || AUTOPILOT || mode !== 'menu' || thumbs[1]) return;
+    for (let n = 0; n <= DR.LEVELS.length; n++) {
+      const tr = getTrack(n);
+      world.buildLevel(tr);
+      const s = new DR.Sim(tr);
+      s.player.d = tr.cfg.tutorial ? 30 : 70;
+      thumbs[n] = world.snapshot(s);
+    }
+    world.buildLevel(track);   // back to the menu's level
+  }
+
   function showLevels() {
-    UI.renderLevels(save, n => startLevel(n));
+    makeThumbs();
+    UI.renderLevels(save, n => startLevel(n), thumbs);
     UI.show('levels');
     if (!save.data.tutorialDone && !TEST) UI.coach('#levelGrid [data-level="1"]', 'Start with Level 1!');
   }
@@ -553,13 +571,14 @@
     UI.vignette(false);
     mode = 'result';
     const unlockedNew = save.data.unlocked > wasUnlocked;
+    const nextThumb = thumbs[level + 1];
     openGifts(() => {
       if (track.cfg.final) {
         UI.victory({ score: s.score, coins: s.coins, total: save.bestTotal(), isBest });
       } else {
         UI.complete({
           cfg: track.cfg, distance: track.length, coins: s.coins, shards: s.shards, totalShards: track.shards.length,
-          bonus: s.bonus, score: s.score, isBest, unlockedNew,
+          bonus: s.bonus, score: s.score, isBest, unlockedNew, nextThumb,
         });
       }
     });
@@ -619,6 +638,7 @@
   world.onBossThrow = () => Sound.bossThrow();
   world.applyOutfit(save.data.equipped);
   toMenu();
+  setTimeout(makeThumbs, 600);   // level pictures are ready before the player opens the level list
   if (params.has('level')) {
     const n = U.clamp(parseInt(params.get('level'), 10) || 0, 0, DR.LEVELS.length);
     if (TEST || AUTOPILOT) save.data.unlocked = Math.max(save.data.unlocked, n);   // dev/test only, not written to storage

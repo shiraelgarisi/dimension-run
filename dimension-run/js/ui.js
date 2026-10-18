@@ -70,17 +70,20 @@
       $('shopCoins').textContent = save.data.wallet;
       $('menuCoins').textContent = save.data.wallet;
       $('menuGems').textContent = save.data.gems;
+      $('wardrobeBtn').classList.toggle('has-new', save.data.newItems.length > 0);
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('menuBest').textContent = save.bestTotal();
     },
 
-    renderLevels(save, pick) {
+    renderLevels(save, pick, thumbs = {}) {
+      const pic = (b, id) => { if (thumbs[id]) { b.style.backgroundImage = `url(${thumbs[id]})`; b.classList.add('has-pic'); } };
       const grid = $('levelGrid');
       grid.innerHTML = '';
       // level 0: the Infinite World, always open
       const inf = document.createElement('button');
       inf.className = 'level-card endless';
       inf.innerHTML = `<span class="num">∞</span><span class="name">${DR.ENDLESS.name}</span><span class="diff">Endless</span><span class="lbest">Best: ${save.data.endlessBest} m</span>`;
+      pic(inf, 0);
       inf.addEventListener('click', () => { DR.Sound.click(); pick(0); });
       grid.appendChild(inf);
       for (const cfg of DR.LEVELS) {
@@ -88,6 +91,7 @@
         const b = document.createElement('button');
         b.className = 'level-card' + (unlocked ? '' : ' locked');
         b.dataset.level = cfg.id;
+        pic(b, cfg.id);
         b.innerHTML = `
           ${save.isCompleted(cfg.id) ? '<span class="done" title="Completed">✔</span>' : ''}
           <span class="num">${cfg.id}</span>
@@ -229,7 +233,7 @@
       $('wardrobeWorld').innerHTML = world === DR.CONST.LIGHT ? '☾ See it in the Dark World' : '☀ Back to the Light World';
     },
 
-    renderWardrobe(save, equip, buy) {
+    renderWardrobe(save, equip, buy, fresh = new Set()) {
       $('wardrobeGems').textContent = save.data.gems;
       const box = $('wardrobeSlots');
       box.innerHTML = '';
@@ -243,9 +247,10 @@
           const owned = save.owns(slot, item.id), on = save.data.equipped[slot] === item.id;
           const forSale = !owned && item.price, afford = forSale && save.data.gems >= item.price;
           const b = document.createElement('button');
-          b.className = 'item' + (owned ? '' : forSale ? ' for-sale' + (afford ? ' afford' : '') : ' locked') + (on ? ' on' : '');
+          const isNew = fresh.has(slot + ':' + item.id);
+          b.className = 'item' + (owned ? '' : forSale ? ' for-sale' + (afford ? ' afford' : '') : ' locked') + (on ? ' on' : '') + (isNew ? ' is-new' : '');
           if (forSale) b.innerHTML = `<span class="ico">${item.icon}</span><span class="nm">${item.name}</span><span class="price">💎 ${item.price}</span>`;
-          else b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>`;
+          else b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>${isNew ? '<span class="new-badge">NEW</span>' : ''}`;
           b.title = owned ? item.name : forSale ? `${item.name}: ${item.price} diamonds` : 'Find it in a treasure chest';
           b.addEventListener('click', () => {
             if (owned) { DR.Sound.click(); equip(slot, item.id); }
@@ -360,7 +365,22 @@
       $('cNewBest').classList.toggle('hidden', !d.isBest);
       const nextCfg = DR.LEVELS[d.cfg.id];
       $('cUnlock').classList.toggle('hidden', !d.unlockedNew);
-      if (nextCfg) $('cUnlock').textContent = `🔓 Level ${nextCfg.id} unlocked: ${nextCfg.name}`;
+      if (nextCfg && d.unlockedNew) {
+        // the next level's picture pops up locked; the lock shakes, opens, and the picture lights up
+        const u = $('cUnlock');
+        u.innerHTML = `<div class="unlock-card locked"${d.nextThumb ? ` style="background-image:url(${d.nextThumb})"` : ''}>
+          <span class="ul-num">${nextCfg.id}</span><span class="ul-lock">🔒</span></div>
+          <div class="ul-text">LEVEL ${nextCfg.id}: ${nextCfg.name.toUpperCase()}</div>`;
+        const card = u.querySelector('.unlock-card'), lock = u.querySelector('.ul-lock');
+        clearTimeout(this.unlockT1); clearTimeout(this.unlockT2);
+        this.unlockT1 = setTimeout(() => card.classList.add('shaking'), 700);
+        this.unlockT2 = setTimeout(() => {
+          lock.textContent = '🔓';
+          card.classList.remove('shaking', 'locked'); card.classList.add('open');
+          u.querySelector('.ul-text').textContent = `🎉 LEVEL ${nextCfg.id} UNLOCKED: ${nextCfg.name.toUpperCase()}`;
+          DR.Sound.chest();
+        }, 1500);
+      }
       $('nextBtn').classList.toggle('hidden', !nextCfg);
       this.show('complete');
     },

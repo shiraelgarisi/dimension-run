@@ -2126,6 +2126,25 @@
       this.burst(c, cols[(rnd() * cols.length) | 0], 30, { speed: 11, up: 0, life: 1.4, size: 1.2, grav: 3 });
     }
     render() { this.renderer.render(this.scene, this.camera); }
+
+    /** A picture of the level that is built right now, seen from behind the runner (for the level cards). */
+    snapshot(sim) {
+      const hooks = [this.onThunder, this.onBoom, this.onBossThrow];
+      this.onThunder = this.onBoom = this.onBossThrow = null;   // no sounds while taking pictures
+      const view = { sim, mode: 'countdown', modeT: 0, instability: 0, danger: 0 };
+      for (let i = 0; i < 14; i++) this.update(0.1, view);    // let the camera, sky and scenery settle
+      this.flashV = 0;
+      this.update(0, view);
+      this.renderer.render(this.scene, this.camera);
+      const src = this.renderer.domElement, W = 360, H = 225, ar = W / H;
+      let cw = src.width, ch = cw / ar;
+      if (ch > src.height) { ch = src.height; cw = ch * ar; }
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      c.getContext('2d').drawImage(src, (src.width - cw) / 2, (src.height - ch) / 2, cw, ch, 0, 0, W, H);
+      [this.onThunder, this.onBoom, this.onBossThrow] = hooks;
+      return c.toDataURL('image/jpeg', 0.82);
+    }
   }
 
   DR.World = World;

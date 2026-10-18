@@ -12,7 +12,7 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, newItems: [], onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
@@ -38,6 +38,7 @@
       d.onboard.gift = raw.onboard.gift === true;
       d.onboard.wardrobe = [0, 1, 2].includes(raw.onboard.wardrobe) ? raw.onboard.wardrobe : 0;
     }
+    if (Array.isArray(raw.newItems)) d.newItems = raw.newItems.filter(k => typeof k === 'string' && exists(k)).slice(0, 50);
     const gm = Math.floor(Number(raw.gems));
     if (Number.isFinite(gm) && gm > 0) d.gems = Math.min(gm, 1e6);
     const eb = Math.floor(Number(raw.endlessBest));
@@ -133,7 +134,12 @@
       const weighted = list => { let t = 0; for (const [, w] of list) t += w; let x = rand() * t; for (const [v, w] of list) { if ((x -= w) < 0) return v; } return list[list.length - 1][0]; };
       const itemsLeft = this.findable().length > 0;
       const kind = weighted([['item', itemsLeft ? C.item : 0], ['coins', C.coins], ['gems', C.gems]]);
-      if (kind === 'item') return Object.assign({ kind }, this.unlockRandom(rand));
+      if (kind === 'item') {
+        const got = this.unlockRandom(rand);
+        this.data.newItems.push(got.slot + ':' + got.item.id);
+        this.write();
+        return Object.assign({ kind }, got);
+      }
       const amount = weighted(kind === 'coins' ? C.coinAmounts : C.gemAmounts);
       if (kind === 'coins') this.addCoins(amount); else this.addGems(amount);
       this.write();
