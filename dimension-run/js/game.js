@@ -70,6 +70,7 @@
 
   function showWardrobe() {
     wardrobeOpen = true;
+    if (save.data.onboard.wardrobe === 1) { save.data.onboard.wardrobe = 2; save.write(); }   // the guide to the wardrobe has done its job
     const render = () => UI.renderWardrobe(save, (slot, id) => {
       if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); if (slot === 'back') world.showBackT = 3; world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
     }, (slot, id) => {   // buying a pet with diamonds
@@ -128,7 +129,7 @@
     if (TEST || AUTOPILOT) return;
     if (!save.data.tutorialDone) UI.coach('#levelsBtn', 'Tap here to choose a level');
     else if (save.data.onboard.wardrobe === 1) {
-      UI.coach('#wardrobeBtn', 'Your new item is waiting in the WARDROBE!', () => { save.data.onboard.wardrobe = 2; save.write(); });
+      UI.coach('#wardrobeBtn', 'Your new item is waiting in the WARDROBE!');
     }
   }
 
