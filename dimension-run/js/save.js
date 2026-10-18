@@ -12,7 +12,7 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, items: { shield: 0, magnet: 0 },
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, tutorialDone: false, onboard: { gift: false, wardrobe: 0 }, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
@@ -33,6 +33,11 @@
     if (Number.isFinite(w) && w > 0) d.wallet = Math.min(w, 1e7);
     // players who already have progress never need the tutorial
     d.tutorialDone = raw.tutorialDone === true || d.unlocked > 1 || Object.keys(d.best).length > 0;
+    // first-time guides: gift = shown how to open a gift; wardrobe 0 none, 1 to show, 2 shown
+    if (raw.onboard && typeof raw.onboard === 'object') {
+      d.onboard.gift = raw.onboard.gift === true;
+      d.onboard.wardrobe = [0, 1, 2].includes(raw.onboard.wardrobe) ? raw.onboard.wardrobe : 0;
+    }
     const gm = Math.floor(Number(raw.gems));
     if (Number.isFinite(gm) && gm > 0) d.gems = Math.min(gm, 1e6);
     const eb = Math.floor(Number(raw.endlessBest));

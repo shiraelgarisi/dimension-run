@@ -44,6 +44,7 @@
 
     /** Show one overlay screen (or none with null) and focus its first button. */
     show(name) {
+      this.coach(null);
       for (const s of SCREENS) $(s).classList.toggle('hidden', s !== name);
       this.current = name;
       if (name) {
@@ -86,6 +87,7 @@
         const unlocked = save.isUnlocked(cfg.id);
         const b = document.createElement('button');
         b.className = 'level-card' + (unlocked ? '' : ' locked');
+        b.dataset.level = cfg.id;
         b.innerHTML = `
           ${save.isCompleted(cfg.id) ? '<span class="done" title="Completed">✔</span>' : ''}
           <span class="num">${cfg.id}</span>
@@ -147,6 +149,35 @@
       $('giftNext').onclick = () => { DR.Sound.click(); i++; if (i < list.length) one(); else done(); };
       this.show('gift');
       one();
+    },
+
+    /** First-time guide: a pointing hand and a glow on one button, with a short note.
+        target: element or CSS selector (null hides it). done() runs when the button is pressed. */
+    coach(target, text, done) {
+      const box = $('coach');
+      clearInterval(this.coachTimer);
+      if (this.coachEl) { this.coachEl.classList.remove('coach-target'); this.coachEl.removeEventListener('click', this.coachClick); }
+      this.coachEl = null;
+      box.classList.add('hidden');
+      if (!target) return;
+      const el = typeof target === 'string' ? document.querySelector(target) : target;
+      if (!el) return;
+      this.coachEl = el;
+      el.classList.add('coach-target');
+      $('coachText').textContent = text;
+      this.coachClick = () => { this.coach(null); if (done) done(); };
+      el.addEventListener('click', this.coachClick);
+      const place = () => {
+        const r = el.getBoundingClientRect();
+        if (!r.width) return;
+        const below = r.bottom + 150 < innerHeight;   // the hand sits under the button, or over it near the bottom
+        box.classList.toggle('above', !below);
+        box.style.left = Math.round(r.left + r.width / 2) + 'px';
+        box.style.top = Math.round(below ? r.bottom + 4 : r.top - 4) + 'px';
+      };
+      box.classList.remove('hidden');
+      place();
+      this.coachTimer = setInterval(place, 250);   // follows the button if the screen moves or scrolls
     },
 
     /** Tutorial: the big arrow that says which move to make (null hides it). */

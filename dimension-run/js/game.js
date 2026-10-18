@@ -62,6 +62,7 @@
     document.body.dataset.level = '1';
     UI.renderMenu(save, nextLevelToPlay());
     UI.show('menu');
+    menuGuide();
     Sound.setIntensity(0);
     Sound.setSong('menu');
     Sound.musicStart();
@@ -119,6 +120,16 @@
   function showLevels() {
     UI.renderLevels(save, n => startLevel(n));
     UI.show('levels');
+    if (!save.data.tutorialDone && !TEST) UI.coach('#levelGrid [data-level="1"]', 'Start with Level 1!');
+  }
+
+  // first-time guides on the main menu: where to start, and where a won item went
+  function menuGuide() {
+    if (TEST || AUTOPILOT) return;
+    if (!save.data.tutorialDone) UI.coach('#levelsBtn', 'Tap here to choose a level');
+    else if (save.data.onboard.wardrobe === 1) {
+      UI.coach('#wardrobeBtn', 'Your new item is waiting in the WARDROBE!', () => { save.data.onboard.wardrobe = 2; save.write(); });
+    }
   }
 
   function startLevel(n) {
@@ -561,6 +572,9 @@
     UI.showGifts(list, (slot, id) => {
       if (save.equip(slot, id)) world.applyOutfit(save.data.equipped);
     }, then);
+    // the first gift ever: show how to open it; after a first clothing prize, the menu will point to the wardrobe
+    if (!save.data.onboard.gift) UI.coach('#giftBox', 'Tap the gift to open it!', () => { save.data.onboard.gift = true; save.write(); });
+    if (save.data.onboard.wardrobe === 0 && list.some(p => p.slot !== 'coins' && p.slot !== 'gems')) { save.data.onboard.wardrobe = 1; save.write(); }
   }
 
   function frame(dt) {

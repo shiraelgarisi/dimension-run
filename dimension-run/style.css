@@ -360,3 +360,15 @@ body[data-level="0"] { --accent: #b07aff; --accent-2: #9ae8ff; }
 .info-card svg { width: 100%; height: auto; border-radius: 10px; background: rgba(0, 0, 0, 0.25); display: block; }
 .info-card h3 { margin: 8px 0 4px; font-family: 'Bungee', 'Fredoka', sans-serif; font-weight: 400; font-size: 14px; letter-spacing: 1px; color: #ffe066; }
 .info-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* ---------- first-time guides ---------- */
+#coach { position: fixed; z-index: 60; pointer-events: none; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+#coach.above { flex-direction: column-reverse; transform: translate(-50%, -100%); }
+.coach-hand { font-size: 46px; line-height: 1; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); animation: coachTap 0.9s ease-in-out infinite; }
+#coach.above .coach-hand { transform: rotate(180deg); animation: coachTapDown 0.9s ease-in-out infinite; }
+.coach-text { margin: 4px 0; padding: 8px 14px; border-radius: 14px; background: #ffe066; color: #2a1a00; font-weight: 700; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+.coach-target { position: relative; z-index: 2; animation: coachGlow 1s ease-in-out infinite !important; border-color: #ffe066 !important; }
+@keyframes coachTap { 50% { transform: translateY(-10px); } }
+@keyframes coachTapDown { 0%, 100% { transform: rotate(180deg) translateY(0); } 50% { transform: rotate(180deg) translateY(-10px); } }
+@keyframes coachGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 224, 102, 0.9); } 50% { box-shadow: 0 0 0 10px rgba(255, 224, 102, 0); } }
+@media (max-width: 720px) { .coach-text { white-space: normal; max-width: 70vw; text-align: center; } }
