@@ -31,6 +31,8 @@ Hit a block from the side and you **stumble**: the demons catch up. Stumble agai
 - **Magnet power-up**, coin arcs, particle bursts, camera shake, speed-based FOV
 - **Every level has its own world** (built in `js/themes.js`): Jungle Temple (parrots, butterflies, mist), Deep Space (floating metal track, planets, asteroids, UFOs, nebula, a black hole), Time Rift (giant sky clock, clock towers, spinning gears, flying pocket watches, steam), Toxic Chaos (floating islands, bats, toxic clouds), Volcanic Collapse (erupting volcanoes with smoke, lava floor, lightning, meteors, a phoenix), Candy Kingdom (lollipops, candy canes, cupcakes, a sky donut, sprinkle rain), Rainbow Skies (running on clouds, rainbows, hot-air balloons, gift-box obstacles, a starry night side) and the Monster Lair. Each has its own Light and Dark look
 - **Boss level**: the Monster King hovers ahead and throws the obstacles onto your path; grab shards to blast it, and finish the level to defeat it
+- **Infinite World (level 0)**: an endless run with a look of its own (ring gates, prisms, infinity knots, a glowing infinity sign); speed keeps rising; the track is built as you run and cleared behind you; best distance is saved
+- **Diamonds**: found in treasure chests (10/15/50) and scattered off the safe path; pets are bought with diamonds (100-350). Chests give clothing, coins or diamonds
 - **Time pads** (Time Rift): green pads speed up time for double points, purple pads slow time down
 - **Treasure chests** hidden off the main path unlock hats, outfits and back items; dress the runner in the **Wardrobe**
 - **In-run effects**: speed streaks that grow with speed, plus a shockwave and callout at 25 / 50 / 75 % progress

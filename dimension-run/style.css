@@ -318,3 +318,20 @@ button.world-toggle { width: auto; margin: 6px auto 0; padding: 8px 14px; font-s
 /* the gift's light rays, item and confetti are decoration: taps go through them to the buttons */
 .gift-rays, .gift-item, .gift-confetti { pointer-events: none; }
 .gift-buttons { position: relative; z-index: 6; }
+
+/* ---------- diamonds, pet shop, Infinite World card ---------- */
+.gems-hud { font-size: 18px; font-weight: 700; margin-top: 2px; color: #bff4ff; text-shadow: 0 0 8px rgba(90, 220, 255, 0.8); }
+.menu-wallet { display: flex; justify-content: center; gap: 22px; margin: 4px 0 2px; font-size: 16px; color: var(--muted); }
+.menu-wallet b { color: var(--text); }
+.menu-wallet .coin-icon { display: inline-block; vertical-align: -2px; }
+button.item.for-sale { opacity: 0.75; border-style: dashed; }
+button.item.for-sale.afford { opacity: 1; border-color: #7ae8ff; box-shadow: 0 0 12px rgba(122, 232, 255, 0.5); }
+button.item .price { font-size: 10px; font-weight: 700; color: #bff4ff; }
+#banner.gem { color: #bff4ff; text-shadow: 0 0 20px rgba(90, 220, 255, 0.9), 0 4px 10px rgba(0, 0, 0, 0.7); font-size: clamp(26px, 4vw, 40px); }
+.level-grid { grid-template-columns: repeat(3, 1fr); }
+.level-card.endless { background: linear-gradient(135deg, rgba(122, 232, 255, 0.18), rgba(255, 138, 224, 0.18)); border-color: rgba(190, 160, 255, 0.7); }
+.level-card.endless .num { color: #fff; text-shadow: 0 0 14px #b07aff, 0 0 30px #7ae8ff; font-size: 46px; }
+body[data-level="0"] { --accent: #b07aff; --accent-2: #9ae8ff; }
+@media (max-width: 720px) { .level-grid { grid-template-columns: repeat(2, 1fr); } }
+/* readable HUD on bright worlds (Rainbow Skies, Infinite World) */
+#hud { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.6); }

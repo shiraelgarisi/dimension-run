@@ -317,6 +317,48 @@ test('wallet: spend, buy and use power-ups; bad values are cleaned', () => {
   DR.save.load();
   assert(DR.save.data.wallet === 0 && DR.save.data.items.shield === 0 && DR.save.data.items.magnet === 3);
 });
+test('diamonds: placed off the safe path in every level and can be picked up', () => {
+  for (const tr of tracks) {
+    assert(tr.gems.length === tr.cfg.gems, `L${tr.cfg.id} gems ${tr.gems.length}`);
+  }
+  const tr = tracks[2], g = tr.gems[0];
+  const sim = new DR.Sim(tr);
+  sim.player.d = g.d - 2; sim.player.lane = sim.player.fromLane = g.lane; sim.player.lat = g.lane * C.LANE_W;
+  if (g.world !== sim.dim.world) sim.dim.forceFlip();
+  sim.rowCursor = tr.rows.findIndex(r => r.d > g.d - 2);
+  sim.gemCursor = 0;
+  for (let k = 0; k < 60; k++) sim.step(1 / 120);
+  assert(sim.events.some(e => e.type === 'gem') && sim.gemsGot === DR.GEM_VALUE);
+});
+test('pets cost diamonds and never come out of chests; chests give clothes, coins or diamonds', () => {
+  DR.save.reset();
+  DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('pet:') || k === 'pet:none');
+  DR.save.data.gems = 0;
+  assert(!DR.save.buyItem('pet', 'chick'), 'no diamonds, no pet');
+  DR.save.addGems(120);
+  assert(DR.save.buyItem('pet', 'chick') && DR.save.data.gems === 20 && DR.save.owns('pet', 'chick'));
+  assert(!DR.save.buyItem('pet', 'panda'), 'too expensive');
+  const kinds = {};
+  let r = 1;
+  const rand = () => (r = (r * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 400; i++) {
+    const got = DR.save.openChest(rand);
+    kinds[got.kind] = (kinds[got.kind] || 0) + 1;
+    assert(got.kind !== 'item' || got.slot !== 'pet', 'a pet came out of a chest');
+  }
+  assert(kinds.item > 0 && kinds.coins > 0 && kinds.gems > 0, JSON.stringify(kinds));
+  assert(DR.save.findable().length === 0, 'eventually every clothing item is found');
+});
+test('Infinite World: never ends, speeds up, stays fair', () => {
+  const tr = DR.track.generate(DR.ENDLESS, 4242);
+  assert(tr.length >= 30000 && tr.speedAt(3000) > tr.speedAt(100) && tr.speedAt(39000) === DR.ENDLESS.speed[1]);
+  const sim = new DR.Sim(tr);
+  const bot = new DR.Autopilot(tr, { jitter: 0.08, rng: DR.util.rng(5).next });
+  let t = 0;
+  while (sim.state === 'running' && sim.player.d < 6000 && t < 600) { sim.update(1 / 60, s => bot.tick(s)); t += 1 / 60; }
+  assert(sim.state === 'running', `crashed at ${sim.player.d.toFixed(0)} m (${sim.deathKind})`);
+  assert(tr.chests.length > 20 && tr.gems.length > 30, 'treasure all along the way');
+});
 test('wardrobe: free items owned, chests unlock new ones, bad saves are cleaned', () => {
   DR.save.reset();
   DR.save.data.owned = DR.save.data.owned.filter(k => !k.startsWith('hat:crown'));

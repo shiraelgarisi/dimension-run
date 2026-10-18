@@ -13,7 +13,8 @@
 
   const world = new DR.World(document.getElementById('game'));
   const trackCache = {};
-  const getTrack = n => trackCache[n] || (trackCache[n] = DR.track.generate(DR.LEVELS[n - 1]));
+  const getCfg = n => (n === 0 ? DR.ENDLESS : DR.LEVELS[n - 1]);   // level 0 is the Infinite World
+  const getTrack = n => trackCache[n] || (trackCache[n] = DR.track.generate(getCfg(n)));
 
   // mode: menu | countdown | play | paused | dead | finish | victory | result
   let mode = 'menu', modeT = 0, pausedFrom = null, viewMode = 'menu';
@@ -27,7 +28,7 @@
   // every run gets a new random layout (obstacles, coins, chests, pads); the solver keeps each one fair.
   // ?seed=123 pins a layout, for testing.
   function randomTrack(n) {
-    const cfg = DR.LEVELS[n - 1];
+    const cfg = getCfg(n);
     const seed = params.has('seed') ? parseInt(params.get('seed'), 10) : (Math.random() * 1e9) | 0;
     try { return DR.track.generate(cfg, seed); } catch (e) { return getTrack(n); }   // never expected, but never stuck
   }
@@ -69,6 +70,12 @@
     wardrobeOpen = true;
     const render = () => UI.renderWardrobe(save, (slot, id) => {
       if (save.equip(slot, id)) { world.applyOutfit(save.data.equipped); if (slot === 'back') world.showBackT = 3; world.burst(world.playerPos(1.6), 0xffd84a, 14, { speed: 4, up: 2, life: 0.5 }); render(); }
+    }, (slot, id) => {   // buying a pet with diamonds
+      if (save.buyItem(slot, id)) {
+        Sound.chest(); save.equip(slot, id); world.applyOutfit(save.data.equipped);
+        world.burst(world.playerPos(0.8), 0x7ae8ff, 30, { speed: 6, up: 4, life: 0.8 });
+        render(); UI.renderMenu(save, nextLevelToPlay());
+      } else Sound.denied();
     });
     render();
     UI.show('wardrobe');
@@ -132,14 +139,16 @@
     victoryFx = false;
     UI.show(null);
     UI.hud(true);
-    UI.startLevel(track.cfg, save.best(n));
+    UI.startLevel(track.cfg, track.cfg.endless ? save.data.endlessBest : save.best(n));
+    if (track.cfg.endless) sim.scoring.mult = 1.5;
     bossHits = 0;
     UI.bossBar(track.cfg.boss ? track.cfg.boss.name : null, 1);
     UI.vignette(false);
     Sound.setIntensity(0);
     Sound.setSong(n);
     Sound.musicStart();
-    UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small><small class="theme">${world.themeName.toUpperCase()}</small>`, '', 1100);
+    if (track.cfg.endless) UI.banner('∞ INFINITE WORLD<small>HOW FAR CAN YOU GO?</small>', '', 1300);
+    else UI.banner(`LEVEL ${n}<small>${track.cfg.name.toUpperCase()} · ${track.cfg.subtitle}</small><small class="theme">${world.themeName.toUpperCase()}</small>`, '', 1100);
     UI.flash('w');
   }
 
@@ -285,6 +294,7 @@
         case 'ready': if (track.cfg.cooldown > 0) Sound.ready(); break;
         case 'rift': Sound.rift(); world.riftFx(); UI.flash(e.world === C.DARK ? 'd' : 'l'); UI.glitch(); break;
         case 'coin': Sound.coin(track.coins[e.index].world); world.hideCoin(e.index, e.magnet); save.addCoins(1); break;
+        case 'gem': Sound.gem(); world.hideGem(e.index); save.addGems(e.value); UI.banner(`💎 +${e.value}`, 'milestone gem', 700); break;
         case 'shield': Sound.shield(); world.shieldFx(); UI.flash('w'); UI.banner('🛡️ SHIELD!<small>IT SAVED YOU</small>', 'milestone', 900); break;
         case 'shard':
           Sound.shard(); world.hideShard(e.index);
@@ -293,10 +303,11 @@
           break;
         case 'chest': {
           Sound.chest(); world.openChest(e.index); UI.flash('w');
-          const got = save.unlockRandom();   // saved right away, but kept a surprise until the gift box
-          // own everything already? then the gift is a bag of coins
-          if (got) prizes.push(got);
-          else { save.addCoins(100); prizes.push({ slot: 'coins', item: { id: null, icon: '💰', name: '100 Coins' } }); }
+          // clothing, coins or diamonds: saved right away, but kept a surprise until the gift box
+          const got = save.openChest();
+          if (got.kind === 'item') prizes.push(got);
+          else if (got.kind === 'coins') prizes.push({ slot: 'coins', item: { id: null, icon: '💰', name: got.amount + ' Coins' } });
+          else prizes.push({ slot: 'gems', item: { id: null, icon: got.amount >= 50 ? '💎💎💎' : '💎', name: got.amount + ' Diamonds' } });
           UI.banner('🎁 TREASURE!<small>A MYSTERY GIFT · OPEN IT AT THE END</small>', 'treasure', 1800);
           break;
         }
@@ -416,8 +427,15 @@
           world.bossHP = hp;
           UI.bossBar(track.cfg.boss.name, hp);
         }
+        // Infinite World: a callout every 500 m
+        if (track.cfg.endless && Math.floor(sim.player.d / 500) > milestone) {
+          milestone = Math.floor(sim.player.d / 500);
+          world.milestoneFx();
+          Sound.ready();
+          UI.banner(`${milestone * 500} m<small>${sim.player.d > save.data.endlessBest && save.data.endlessBest > 0 ? 'NEW RECORD!' : 'KEEP RUNNING'}</small>`, 'milestone', 900);
+        }
         // progress milestones: shockwave + callout at 25 / 50 / 75 %
-        if (milestone < 3 && sim.progress >= (milestone + 1) * 0.25) {
+        if (!track.cfg.endless && milestone < 3 && sim.progress >= (milestone + 1) * 0.25) {
           milestone++;
           world.milestoneFx();
           Sound.ready();
@@ -446,12 +464,14 @@
         sim.update(dt);
         if (modeT > 1.4) {
           const score = sim.scoring.score;
-          const isBest = save.recordScore(level, score);
+          const meters = Math.floor(sim.player.d);
+          const isBest = track.cfg.endless ? save.recordEndless(meters) : save.recordScore(level, score);
+          if (track.cfg.endless) save.recordScore(0, score);
           save.write();
           UI.hud(false);
           const over = {
             cfg: track.cfg, message: deathMessage(), progress: sim.progress, score, coins: sim.scoring.coins, best: save.best(level), isBest,
-            wallet: save.data.wallet, reviveCost: reviveCost(),
+            wallet: save.data.wallet, reviveCost: reviveCost(), endless: !!track.cfg.endless, meters, bestMeters: save.data.endlessBest,
           };
           mode = 'result';
           openGifts(() => UI.gameOver(over));
@@ -512,7 +532,8 @@
       UI.updateHud({
         score: sim.scoring.score, coins: sim.scoring.coins, shards: sim.scoring.shards, progress: sim.progress,
         world: sim.dim.world, readiness: sim.dim.readiness, cooldownOn: track.cfg.cooldown > 0,
-        shields: sim.shields, magnet: sim.magnet,
+        shields: sim.shields, magnet: sim.magnet, gems: save.data.gems,
+        endless: !!track.cfg.endless, meters: Math.floor(sim.player.d), bestMeters: save.data.endlessBest,
       });
     }
     world.update(mode === 'paused' ? 0 : dt, {
@@ -539,7 +560,7 @@
   world.applyOutfit(save.data.equipped);
   toMenu();
   if (params.has('level')) {
-    const n = U.clamp(parseInt(params.get('level'), 10) || 1, 1, DR.LEVELS.length);
+    const n = U.clamp(parseInt(params.get('level'), 10) || 0, 0, DR.LEVELS.length);
     if (TEST || AUTOPILOT) save.data.unlocked = Math.max(save.data.unlocked, n);   // dev/test only, not written to storage
     startLevel(n);
   }

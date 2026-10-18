@@ -64,6 +64,8 @@
       const total = Object.values(DR.COSMETICS).reduce((n, l) => n + l.length, 0);
       $('wardrobeCount').textContent = `${save.data.owned.length} / ${total}`;
       $('shopCoins').textContent = save.data.wallet;
+      $('menuCoins').textContent = save.data.wallet;
+      $('menuGems').textContent = save.data.gems;
       $('startInfo').textContent = `Level ${cfg.id} · ${cfg.name}`;
       $('menuBest').textContent = save.bestTotal();
     },
@@ -71,6 +73,12 @@
     renderLevels(save, pick) {
       const grid = $('levelGrid');
       grid.innerHTML = '';
+      // level 0: the Infinite World, always open
+      const inf = document.createElement('button');
+      inf.className = 'level-card endless';
+      inf.innerHTML = `<span class="num">∞</span><span class="name">${DR.ENDLESS.name}</span><span class="diff">Endless</span><span class="lbest">Best: ${save.data.endlessBest} m</span>`;
+      inf.addEventListener('click', () => { DR.Sound.click(); pick(0); });
+      grid.appendChild(inf);
       for (const cfg of DR.LEVELS) {
         const unlocked = save.isUnlocked(cfg.id);
         const b = document.createElement('button');
@@ -104,10 +112,10 @@
         $('giftConfetti').innerHTML = '';
         item.querySelector('.ico').textContent = g.item.icon;
         item.querySelector('.nm').textContent = g.item.name;
-        item.querySelector('.slot').textContent = g.slot === 'coins' ? 'FOR THE SHOP' : 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
+        item.querySelector('.slot').textContent = g.slot === 'coins' ? 'FOR THE SHOP' : g.slot === 'gems' ? 'FOR PETS' : 'NEW ' + ({ hat: 'HAT', outfit: 'OUTFIT', back: 'BACK ITEM', pet: 'PET' }[g.slot] || g.slot.toUpperCase());
         wearBtn.textContent = g.slot === 'pet' ? 'TAKE IT ALONG' : 'WEAR IT NOW';
         wearBtn.disabled = false;
-        wearBtn.classList.toggle('hidden', g.slot === 'coins');
+        wearBtn.classList.toggle('hidden', g.slot === 'coins' || g.slot === 'gems');
         $('giftNext').textContent = i < list.length - 1 ? 'NEXT GIFT' : 'CONTINUE';
         setTimeout(() => box.focus({ preventScroll: true }), 60);
       };
@@ -170,7 +178,8 @@
       $('wardrobeWorld').innerHTML = world === DR.CONST.LIGHT ? '☾ See it in the Dark World' : '☀ Back to the Light World';
     },
 
-    renderWardrobe(save, equip) {
+    renderWardrobe(save, equip, buy) {
+      $('wardrobeGems').textContent = save.data.gems;
       const box = $('wardrobeSlots');
       box.innerHTML = '';
       for (const slot in DR.COSMETICS) {
@@ -181,21 +190,27 @@
         row.className = 'items';
         for (const item of DR.COSMETICS[slot]) {
           const owned = save.owns(slot, item.id), on = save.data.equipped[slot] === item.id;
+          const forSale = !owned && item.price, afford = forSale && save.data.gems >= item.price;
           const b = document.createElement('button');
-          b.className = 'item' + (owned ? '' : ' locked') + (on ? ' on' : '');
-          b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>`;
-          b.title = owned ? item.name : 'Find it in a treasure chest';
-          b.addEventListener('click', () => { if (owned) { DR.Sound.click(); equip(slot, item.id); } else DR.Sound.denied(); });
+          b.className = 'item' + (owned ? '' : forSale ? ' for-sale' + (afford ? ' afford' : '') : ' locked') + (on ? ' on' : '');
+          if (forSale) b.innerHTML = `<span class="ico">${item.icon}</span><span class="nm">${item.name}</span><span class="price">💎 ${item.price}</span>`;
+          else b.innerHTML = `<span class="ico">${owned ? item.icon : '🔒'}</span><span class="nm">${owned ? item.name : '???'}</span>`;
+          b.title = owned ? item.name : forSale ? `${item.name}: ${item.price} diamonds` : 'Find it in a treasure chest';
+          b.addEventListener('click', () => {
+            if (owned) { DR.Sound.click(); equip(slot, item.id); }
+            else if (afford && window.confirm(`Buy the ${item.name} for ${item.price} diamonds?`)) buy(slot, item.id);
+            else DR.Sound.denied();
+          });
           row.appendChild(b);
         }
         box.appendChild(row);
       }
       const total = Object.values(DR.COSMETICS).reduce((n, l) => n + l.length, 0);
-      $('wardrobeFound').textContent = `Found ${save.data.owned.length} of ${total} items. Treasure chests hide the rest!`;
+      $('wardrobeFound').textContent = `Found ${save.data.owned.length} of ${total} items. Chests hide clothes; pets cost diamonds!`;
     },
 
     startLevel(cfg, best) {
-      $('levelName').textContent = `Level ${cfg.id} · ${cfg.name}`;
+      $('levelName').textContent = cfg.endless ? `∞ · ${cfg.name}` : `Level ${cfg.id} · ${cfg.name}`;
       $('hudBest').textContent = best;
       $('shards').classList.add('hidden');
       lastHud = {};
@@ -209,7 +224,14 @@
       if (s.shards) { set('shards', 'shards', '✦ ' + s.shards); $('shards').classList.remove('hidden'); }
       set('powerups', 'powerups', (s.shields ? '🛡️' : '') + (s.magnet ? '🧲' : ''));
       const pct = Math.floor(s.progress * 100);
-      if (lastHud.pct !== pct) { lastHud.pct = pct; $('progressFill').style.width = pct + '%'; $('progressPct').textContent = pct + '%'; }
+      if (s.endless) {   // Infinite World: distance, measured against your record
+        if (lastHud.m !== s.meters) {
+          lastHud.m = s.meters;
+          $('progressFill').style.width = (s.bestMeters ? Math.min(100, s.meters / s.bestMeters * 100) : 0) + '%';
+          $('progressPct').textContent = `${s.meters} m · BEST ${s.bestMeters} m`;
+        }
+      } else if (lastHud.pct !== pct) { lastHud.pct = pct; $('progressFill').style.width = pct + '%'; $('progressPct').textContent = pct + '%'; }
+      set('gems', 'gemsHud', '💎 ' + s.gems);
       if (lastHud.world !== s.world) {
         lastHud.world = s.world;
         const dark = s.world === DR.CONST.DARK;
@@ -264,8 +286,8 @@
 
     gameOver(d) {
       $('deathMsg').textContent = d.message;
-      $('overPct').textContent = Math.floor(d.progress * 100) + '%';
-      $('overLevel').textContent = `Level ${d.cfg.id} · ${d.cfg.name}`;
+      $('overPct').textContent = d.endless ? d.meters + ' m' : Math.floor(d.progress * 100) + '%';
+      $('overLevel').textContent = d.endless ? `the Infinite World (best ${d.bestMeters} m)` : `Level ${d.cfg.id} · ${d.cfg.name}`;
       $('overScore').textContent = d.score;
       $('overCoins').textContent = d.coins;
       $('overBest').textContent = d.best;

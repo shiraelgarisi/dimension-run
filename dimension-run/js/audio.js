@@ -301,6 +301,28 @@
     },
   });
 
+  // Level 0, the Infinite World: a dreamy, driving trance that never gets old
+  SONGS[0] = {
+    bpm: 126, steps: 16, bars: 4, chords: [[53, 57, 60, 64], [48, 52, 55, 60], [55, 59, 62, 67], [57, 60, 64, 69]],
+    light(s, bar, w, B) {
+      const c = this.chords[bar], beat = 60 / bpm / 4;
+      if (s % 4 === 0) I.kick(w, B, 0.12);
+      if (s % 4 === 2) I.hat(w, B, 0.018);
+      if (s % 4 === 2) I.bass(c[0] - 24, w, B, 0.09, beat * 1.6);
+      tone(NOTE(c[[0, 1, 2, 3, 2, 1, 3, 2][s % 8]] + 12 + (s >= 8 ? 12 : 0)), beat * 0.9, { vol: 0.022, when: w, bus: B });
+      if (s === 0) I.pad([c[0], c[1], c[2]], w, B, beat * 16, 0.016, 1800);
+      if (s === 14 && bar === 3) [84, 88, 91].forEach((n, k) => I.bell(n, w + k * 0.06, B, 0.012, 1));
+    },
+    dark(s, bar, w, B) {
+      const c = this.chords[bar], beat = 60 / bpm / 4;
+      if (s % 4 === 0) I.kick(w, B, 0.1);
+      if (s === 0) { I.sub(c[0] - 24, w, B, 0.12, beat * 14); I.pad([c[0] - 12, c[2] - 12], w, B, beat * 16, 0.025, 600); }
+      if (s % 2 === 0) tone(NOTE(c[(s / 2) % 4] + 12), beat * 1.5, { vol: 0.016, when: w, bus: B, filter: 1400, type: 'triangle' });
+      if (s === 6 || s === 13) I.bell(c[3] + 12, w, B, 0.016, 2);
+    },
+    amb: [[['whoosh', 0.04]], [['hum', 0.04]]],
+  };
+
   // ----- music sequencer (scheduled slightly ahead for tight timing) -----
   function schedule() {
     if (!song) return;
@@ -374,6 +396,10 @@
     },
     shield() { tone(660, 0.35, { type: 'triangle', vol: 0.12, to: 1320 }); noise(0.25, { vol: 0.12, freq: 3000, sweep: 600 }); },
     revive() { [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, { type: 'sine', vol: 0.1, at: i * 0.07 })); },
+    gem() {
+      [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, 0.18, { vol: 0.045, at: i * 0.04 }));
+      noise(0.3, { vol: 0.04, freq: 7000, type: 'highpass', at: 0.05 });
+    },
     chest() {
       [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.1, at: i * 0.06 }));
       noise(0.4, { vol: 0.08, freq: 5000, type: 'highpass', at: 0.1 });

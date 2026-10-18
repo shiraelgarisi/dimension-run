@@ -12,7 +12,7 @@
   const freeItems = () => Object.keys(COS()).flatMap(slot => COS()[slot].filter(i => i.free).map(i => slot + ':' + i.id));
   const firstFree = slot => (COS()[slot].find(i => i.free) || COS()[slot][0]).id;
   const defaults = () => ({
-    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, items: { shield: 0, magnet: 0 },
+    v: VERSION, unlocked: 1, best: {}, completed: {}, muted: false, wallet: 0, gems: 0, endlessBest: 0, items: { shield: 0, magnet: 0 },
     owned: freeItems(),
     equipped: Object.fromEntries(Object.keys(COS()).map(slot => [slot, firstFree(slot)])),
   });
@@ -31,6 +31,12 @@
     d.muted = raw.muted === true;
     const w = Math.floor(Number(raw.wallet));
     if (Number.isFinite(w) && w > 0) d.wallet = Math.min(w, 1e7);
+    const gm = Math.floor(Number(raw.gems));
+    if (Number.isFinite(gm) && gm > 0) d.gems = Math.min(gm, 1e6);
+    const eb = Math.floor(Number(raw.endlessBest));
+    if (Number.isFinite(eb) && eb > 0) d.endlessBest = eb;
+    const b0 = Number(raw.best && raw.best[0]);
+    if (Number.isFinite(b0) && b0 > 0) d.best[0] = Math.floor(b0);
     for (const k in d.items) {
       const n = Math.floor(Number(raw.items && raw.items[k]));
       if (Number.isFinite(n) && n > 0) d.items[k] = Math.min(n, 99);
@@ -104,8 +110,39 @@
     },
     owns(slot, id) { return this.data.owned.includes(slot + ':' + id); },
     /** Unlocks a random item you do not own yet; returns { slot, item } or null when you own everything. */
+    addGems(n) { this.data.gems += n; },             // written with the next write()
+    /** Buys a pet (or any priced item) with diamonds. */
+    buyItem(slot, id) {
+      const item = (COS()[slot] || []).find(i => i.id === id);
+      if (!item || !item.price || this.owns(slot, id) || this.data.gems < item.price) return false;
+      this.data.gems -= item.price;
+      this.data.owned.push(slot + ':' + id);
+      this.write();
+      return true;
+    },
+    /** Opens a treasure chest: { kind: 'item', slot, item } | { kind: 'coins' | 'gems', amount }. Applied and saved. */
+    openChest(rand = Math.random) {
+      const C = DR.CHEST;
+      const weighted = list => { let t = 0; for (const [, w] of list) t += w; let x = rand() * t; for (const [v, w] of list) { if ((x -= w) < 0) return v; } return list[list.length - 1][0]; };
+      const itemsLeft = this.findable().length > 0;
+      const kind = weighted([['item', itemsLeft ? C.item : 0], ['coins', C.coins], ['gems', C.gems]]);
+      if (kind === 'item') return Object.assign({ kind }, this.unlockRandom(rand));
+      const amount = weighted(kind === 'coins' ? C.coinAmounts : C.gemAmounts);
+      if (kind === 'coins') this.addCoins(amount); else this.addGems(amount);
+      this.write();
+      return { kind, amount };
+    },
+    /** Items chests can still give you (pets are not in chests: they are bought with diamonds). */
+    findable() {
+      return Object.keys(COS()).flatMap(slot => COS()[slot].map(item => ({ slot, item }))).filter(x => !x.item.price && !this.owns(x.slot, x.item.id));
+    },
+    recordEndless(meters) {
+      const isBest = meters > this.data.endlessBest;
+      if (isBest) { this.data.endlessBest = Math.floor(meters); this.write(); }
+      return isBest;
+    },
     unlockRandom(rand = Math.random) {
-      const all = Object.keys(COS()).flatMap(slot => COS()[slot].map(item => ({ slot, item })));
+      const all = Object.keys(COS()).flatMap(slot => COS()[slot].filter(item => !item.price).map(item => ({ slot, item })));
       const left = all.filter(x => !this.owns(x.slot, x.item.id));
       if (!left.length) return null;
       const pick = left[Math.floor(rand() * left.length)];

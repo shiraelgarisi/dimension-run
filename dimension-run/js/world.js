@@ -249,6 +249,12 @@
       this.SK = DR.dress.skinMaterials();
       this.obMats[0].push(...Object.values(this.SK));
       // treasure chests: one material set per world so the inactive world's chests ghost
+      // diamonds: one material per world so the other world's diamonds ghost
+      this.gemMats = [0, 1].map(w => {
+        const m = T(new THREE.MeshStandardMaterial({ color: 0xbff4ff, emissive: 0x2ab8ff, emissiveIntensity: 0.9, metalness: 0.6, roughness: 0.08, flatShading: true }));
+        this.obMats[w].push(m);
+        return m;
+      });
       this.chestMats = [0, 1].map(w => {
         const m = {
           wood: lam(w ? 0x3a2a5a : 0x8a5a2a), band: T(new THREE.MeshStandardMaterial({ color: 0xffcf3a, emissive: 0x8a5a00, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.3 })),
@@ -313,6 +319,8 @@
         shard: new THREE.IcosahedronGeometry(0.5, 0),
         shardRing: new THREE.TorusGeometry(0.8, 0.05, 6, 28),
         ghostGap: new THREE.PlaneGeometry(LW - 0.2, C.DEPTH.gap).rotateX(-Math.PI / 2),
+        diamond: new THREE.OctahedronGeometry(0.42, 0).scale(1, 1.35, 1), diamondRing: new THREE.TorusGeometry(0.62, 0.035, 6, 28),
+        diamondGlow: new THREE.SphereGeometry(0.85, 14, 10),
         pad: new THREE.PlaneGeometry(LW - 0.35, 2.4).rotateX(-Math.PI / 2),
         chest: new THREE.BoxGeometry(1.1, 0.6, 0.75), lid: new THREE.BoxGeometry(1.12, 0.22, 0.77),
         chestBand: new THREE.BoxGeometry(0.12, 0.64, 0.79), lock: new THREE.BoxGeometry(0.18, 0.2, 0.06),
@@ -592,7 +600,7 @@
       const fl = T.floor;
       const FT = {
         stone: this.tex.lightFloor, metal: DR.dress.tex('metalFloor'), clock: DR.dress.tex('clockFloor'), basalt: DR.dress.tex('basaltFloor'),
-        candy: DR.dress.tex('candyFloor'), grid: DR.dress.tex('gridFloor'), cloud: DR.dress.tex('cloudFloor'),
+        candy: DR.dress.tex('candyFloor'), grid: DR.dress.tex('gridFloor'), cloud: DR.dress.tex('cloudFloor'), holo: DR.dress.tex('holoFloor'),
       };
       const glowName = fl.glow || (fl.tex === 'basalt' ? 'lavaGlow' : null);
       const glow = glowName ? DR.dress.tex(glowName) : null;
@@ -667,7 +675,8 @@
             this.skyProps.push(g);
           } else {
             let x;
-            if (ud.x) x = side * (ud.x[0] + rnd() * (ud.x[1] - ud.x[0]));
+            if (p.place === 'path') x = 0;
+            else if (ud.x) x = side * (ud.x[0] + rnd() * (ud.x[1] - ud.x[0]));
             else if (p.place === 'far') x = side * (45 + rnd() * 70);
             else x = side * (PATH_W / 2 + 2.2 + Math.pow(rnd(), 1.3) * 16);
             ud.base = { x, y, z: -(i / n) * SCENERY_SPAN + 20 + rnd() * 3, s };
@@ -954,63 +963,142 @@
         this.bossHP = 1; this.bossHitT = 0; this.bossDying = -1; this.bossThrowT = 0; this.bossSoundT = 0;
       }
 
-      this._buildFloor(track);
-      track.rows.forEach((row, i) => {
-        if (row.kind === 'rift') return this._buildRift(row);
-        if (row.kind === 'finish') return this._buildFinish(track, row);
-        for (let w = 0; w < 2; w++) {
-          for (let l = 0; l < 3; l++) {
-            const c = row.cells[w][l];
-            if (c) this._buildCell(row, w, l - 1, c);
-          }
-        }
-      });
-      for (const c of track.coins) {
-        const m = new THREE.Mesh(c.world === 0 ? this.G.coin : this.G.gem, c.world === 0 ? this.M.coin : this.M.gem);
-        m.position.set(c.lane * LW, c.y, -c.d);
-        m.rotation.y = rnd() * 3;
-        L.add(m);
-        this.coinMeshes.push(m);
-      }
-      for (const s of track.shards) {
-        const g = new THREE.Group();
-        const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: s.world === 0 ? 0x66ddff : 0xff66ee, emissiveIntensity: 1.6, transparent: true, flatShading: true });
-        g.add(new THREE.Mesh(this.G.shard, mat));
-        g.add(new THREE.Mesh(this.G.shardRing, mat));
-        g.position.set(s.lane * LW, s.y, -s.d);
-        g.userData.world = s.world;
-        g.userData.mat = mat;
-        L.add(g);
-        this.shardMeshes.push(g);
-      }
-      for (const p of track.pads || []) {
-        const m = new THREE.Mesh(this.G.pad, new THREE.MeshBasicMaterial({
-          map: DR.dress.tex(p.kind === 'fast' ? 'padFast' : 'padSlow').clone(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
-        }));
-        m.material.map.needsUpdate = true;
-        m.userData.ownMat = true;
-        m.userData.kind = p.kind;
-        m.position.set(p.lane * LW, 0.07, -p.d);
-        L.add(m);
-        this.padMeshes.push(m);
-      }
-      for (const c of track.chests || []) {
-        const M = this.chestMats[c.world], G = this.G;
-        const g = new THREE.Group();
-        const box = new THREE.Mesh(G.chest, M.wood); box.position.y = 0.32; g.add(box);
-        const lid = new THREE.Group(); lid.position.set(0, 0.62, 0.37); g.add(lid);
-        const lt = new THREE.Mesh(G.lid, M.wood); lt.position.set(0, 0.11, -0.37); lid.add(lt);
-        for (const x of [-0.38, 0.38]) { const b = new THREE.Mesh(G.chestBand, M.band); b.position.set(x, 0.38, 0); g.add(b); }
-        const lock = new THREE.Mesh(G.lock, M.band); lock.position.set(0, 0.55, -0.4); g.add(lock);
-        const sparkle = new THREE.Mesh(G.gem, M.gem); sparkle.position.y = 1.5; g.add(sparkle);
-        const beam = new THREE.Mesh(G.beam, new THREE.MeshBasicMaterial({ color: c.world ? 0xff8af0 : 0xffe066, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-        beam.position.y = 7; beam.userData.ownMat = true; g.add(beam);
-        g.position.set(c.lane * LW, 0, -c.d);
-        Object.assign(g.userData, { lid, beam, sparkle, world: c.world, vis: 1 });
-        L.add(g);
-        this.chestMeshes.push(g);
-      }
+      this.gemMeshes = [];
+      this.target = L;
+      this.chunks = [];
+      this.cur = { row: 0, coin: 0, shard: 0, pad: 0, chest: 0, gem: 0 };
+      this._floorSetup(track);
+      this.builtTo = -Infinity;
+      if (track.cfg.endless) this._buildAhead(320);
+      else this._buildAhead(Infinity);
       this.mixShown = -1;
+    }
+
+    /** Builds everything up to distance `to`. The Infinite World does this in chunks as you run. */
+    _buildAhead(to) {
+      const track = this.track, endless = track.cfg.endless;
+      while (this.builtTo < to) {
+        const a = this.builtTo, b = endless ? (a === -Infinity ? 150 : a + 150) : Infinity;
+        let chunk = null;
+        const lists = ['movers', 'enemies', 'collapseTiles', 'beams', 'rifts', 'spinners'];
+        const before = {};
+        if (endless) {
+          chunk = { group: new THREE.Group(), end: b, floorKids: [], idx: {} };
+          this.levelGroup.add(chunk.group);
+          this.target = chunk.group;
+          this.floorKids = chunk.floorKids;
+          for (const k of lists) before[k] = this[k].length;
+          for (const k in this.cur) chunk.idx[k] = this.cur[k];
+        }
+        this._floorUpTo(b === Infinity ? track.length + 120 : b);
+        const rows = track.rows;
+        while (this.cur.row < rows.length && rows[this.cur.row].d < b) {
+          const row = rows[this.cur.row++];
+          if (row.kind === 'rift') { this._buildRift(row); continue; }
+          if (row.kind === 'finish') { this._buildFinish(track, row); continue; }
+          for (let w = 0; w < 2; w++) for (let l = 0; l < 3; l++) { const c = row.cells[w][l]; if (c) this._buildCell(row, w, l - 1, c); }
+        }
+        const T = this.target;
+        for (const c of track.coins.slice(this.cur.coin)) {
+          if (c.d >= b) break;
+          const m = new THREE.Mesh(c.world === 0 ? this.G.coin : this.G.gem, c.world === 0 ? this.M.coin : this.M.gem);
+          m.position.set(c.lane * LW, c.y, -c.d);
+          m.rotation.y = rnd() * 3;
+          T.add(m);
+          this.coinMeshes[this.cur.coin++] = m;
+        }
+        for (const sh of track.shards.slice(this.cur.shard)) {
+          if (sh.d >= b) break;
+          const g = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: sh.world === 0 ? 0x66ddff : 0xff66ee, emissiveIntensity: 1.6, transparent: true, flatShading: true });
+          g.add(new THREE.Mesh(this.G.shard, mat));
+          g.add(new THREE.Mesh(this.G.shardRing, mat));
+          g.position.set(sh.lane * LW, sh.y, -sh.d);
+          g.userData.world = sh.world;
+          g.userData.mat = mat;
+          mat.userData.own = true;
+          T.add(g);
+          this.shardMeshes[this.cur.shard++] = g;
+        }
+        for (const pd of (track.pads || []).slice(this.cur.pad)) {
+          if (pd.d >= b) break;
+          const m = new THREE.Mesh(this.G.pad, new THREE.MeshBasicMaterial({
+            map: DR.dress.tex(pd.kind === 'fast' ? 'padFast' : 'padSlow').clone(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+          }));
+          m.material.map.needsUpdate = true;
+          m.userData.ownMat = true;
+          m.userData.kind = pd.kind;
+          m.position.set(pd.lane * LW, 0.07, -pd.d);
+          T.add(m);
+          this.padMeshes[this.cur.pad++] = m;
+        }
+        for (const c of (track.chests || []).slice(this.cur.chest)) {
+          if (c.d >= b) break;
+          const M = this.chestMats[c.world], G = this.G;
+          const g = new THREE.Group();
+          const box = new THREE.Mesh(G.chest, M.wood); box.position.y = 0.32; g.add(box);
+          const lid = new THREE.Group(); lid.position.set(0, 0.62, 0.37); g.add(lid);
+          const lt = new THREE.Mesh(G.lid, M.wood); lt.position.set(0, 0.11, -0.37); lid.add(lt);
+          for (const x of [-0.38, 0.38]) { const bd = new THREE.Mesh(G.chestBand, M.band); bd.position.set(x, 0.38, 0); g.add(bd); }
+          const lock = new THREE.Mesh(G.lock, M.band); lock.position.set(0, 0.55, -0.4); g.add(lock);
+          const sparkle = new THREE.Mesh(G.gem, M.gem); sparkle.position.y = 1.5; g.add(sparkle);
+          const beam = new THREE.Mesh(G.beam, new THREE.MeshBasicMaterial({ color: c.world ? 0xff8af0 : 0xffe066, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+          beam.position.y = 7; beam.userData.ownMat = true; g.add(beam);
+          g.position.set(c.lane * LW, 0, -c.d);
+          Object.assign(g.userData, { lid, beam, sparkle, world: c.world, vis: 1 });
+          T.add(g);
+          this.chestMeshes[this.cur.chest++] = g;
+        }
+        for (const gm of (track.gems || []).slice(this.cur.gem)) {   // diamonds
+          if (gm.d >= b) break;
+          const g = new THREE.Group();
+          g.add(new THREE.Mesh(this.G.diamond, this.gemMats[gm.world]));
+          const ring = new THREE.Mesh(this.G.diamondRing, this.gemMats[gm.world]); g.add(ring);
+          const glow = new THREE.Mesh(this.G.diamondGlow, new THREE.MeshBasicMaterial({ color: 0x7ae8ff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+          glow.userData.ownMat = true; g.add(glow);
+          g.position.set(gm.lane * LW, gm.y, -gm.d);
+          Object.assign(g.userData, { ring, glow, world: gm.world });
+          T.add(g);
+          this.gemMeshes[this.cur.gem++] = g;
+        }
+        if (chunk) {
+          for (const k of lists) for (let n = before[k]; n < this[k].length; n++) this[k][n].chunk = chunk;
+          for (const k in this.cur) chunk.idx[k] = [chunk.idx[k], this.cur[k]];
+          this.chunks.push(chunk);
+          this.target = this.levelGroup;
+          this.floorKids = null;
+        }
+        this.builtTo = b;
+        this.mixShown = -1;
+      }
+    }
+
+    /** Infinite World: build ahead of the runner and throw away what is far behind. */
+    _streamLevel(P) {
+      if (!this.track.cfg.endless) return;
+      if (P.d + 320 > this.builtTo) this._buildAhead(P.d + 320);
+      while (this.chunks.length && this.chunks[0].end < P.d - 70) {
+        const ch = this.chunks.shift();
+        const free = o => { if (o.userData.ownGeo) o.geometry.dispose(); if (o.userData.ownMat || (o.material && o.material.userData.own)) o.material.dispose(); };
+        ch.group.traverse(free);
+        this.levelGroup.remove(ch.group);
+        for (const k of ch.floorKids) { k.traverse(free); if (k.parent) k.parent.remove(k); }
+        for (const k of ['movers', 'enemies', 'collapseTiles', 'beams', 'rifts', 'spinners']) this[k] = this[k].filter(e => e.chunk !== ch);
+        const nul = (arr, [a, b]) => { for (let n = a; n < b; n++) arr[n] = null; };
+        nul(this.coinMeshes, ch.idx.coin); nul(this.shardMeshes, ch.idx.shard); nul(this.padMeshes, ch.idx.pad);
+        nul(this.chestMeshes, ch.idx.chest); nul(this.gemMeshes, ch.idx.gem);
+      }
+    }
+
+    hideGem(i) {
+      const g = this.gemMeshes[i];
+      if (!g) return;
+      g.visible = false;
+      this.burst(g.position, 0x7ae8ff, 22, { speed: 7, up: 3, life: 0.6, grav: 2 });
+      this.burst(g.position, 0xffffff, 10, { speed: 4, up: 2, life: 0.4, grav: 0 });
+      const ring = new THREE.Mesh(this.G.torus, this.fxMat(0x7ae8ff));
+      ring.position.copy(g.position); this.scene.add(ring);
+      this.fx.push({ mesh: ring, t: 0, dur: 0.45, update: (m, u) => { m.scale.setScalar(0.3 + u * 3); m.material.opacity = 1 - u; } });
     }
 
     _disposeLevel() {
@@ -1022,20 +1110,37 @@
       this.levelGroup = null;
     }
 
-    _buildFloor(track) {
-      const start = -45, end = track.length + 120;
+    _floorSetup(track) {
+      // holes per world and lane, sorted along the track; built piece by piece with cursors
+      this.fl = { start: -45, end: track.length + 120, holes: [], from: [], idx: [] };
       for (let w = 0; w < 2; w++) {
-        const F = this.F[w];
+        this.fl.holes[w] = []; this.fl.from[w] = []; this.fl.idx[w] = [];
         for (let l = -1; l <= 1; l++) {
           const holes = [];
           for (const row of track.rows) {
             const c = row.cells[w] && row.cells[w][l + 1];
             if (c && c.type === 'gap') holes.push({ a: row.d - C.DEPTH.gap / 2, b: row.d + C.DEPTH.gap / 2, collapse: c.collapse, d: row.d });
           }
-          let from = start;
-          for (const h of holes.concat([{ a: end, b: end }])) {
-            if (h.a - from > 0.05) this._floorStrip(w, l, from, h.a, F.top, F.slab, this.floor[w]);
-            if (h.b > h.a) {
+          this.fl.holes[w][l + 1] = holes;
+          this.fl.from[w][l + 1] = this.fl.start;
+          this.fl.idx[w][l + 1] = 0;
+        }
+      }
+      this.fl.curbFrom = this.fl.start;
+    }
+
+    _floorUpTo(to) {
+      const fl = this.fl;
+      to = Math.min(to, fl.end);
+      for (let w = 0; w < 2; w++) {
+        const F = this.F[w];
+        for (let l = -1; l <= 1; l++) {
+          const holes = fl.holes[w][l + 1];
+          let from = fl.from[w][l + 1], k = fl.idx[w][l + 1];
+          while (from < to) {
+            const h = holes[k];
+            if (h && h.a < to) {
+              if (h.a - from > 0.05) this._floorStrip(w, l, from, h.a, F.top, F.slab, this.floor[w]);
               if (h.collapse) {
                 const tile = this._floorStrip(w, l, h.a, h.b, F.crack, F.slab, this.floor[w]);
                 this.collapseTiles.push({ mesh: tile, d: h.d, t: -1, baseX: tile.position.x });
@@ -1043,20 +1148,30 @@
               // ghost marker so the other world can see this hole
               const gm = new THREE.Mesh(this.G.ghostGap, this.ghostMats[w]);
               gm.position.set(l * LW, 0.04, -h.d);
-              this.levelGroup.add(gm);
+              this.target.add(gm);
+              from = Math.max(from, h.b); k++;
+            } else {
+              this._floorStrip(w, l, from, to, F.top, F.slab, this.floor[w]);
+              from = to;
             }
-            from = h.b;
+          }
+          fl.from[w][l + 1] = from; fl.idx[w][l + 1] = k;
+        }
+      }
+      // curbs along the path edges
+      const a = fl.curbFrom, len = to - a;
+      if (len > 0.05) {
+        for (let w = 0; w < 2; w++) {
+          const curbGeo = new THREE.BoxGeometry(0.35, w === 0 ? 0.35 : 0.08, len);
+          for (const side of [-1, 1]) {
+            const m = new THREE.Mesh(curbGeo, this.F[w].curb);
+            m.position.set(side * (PATH_W / 2 - 0.1), w === 0 ? 0.08 : 0.04, -(a + to) / 2);
+            m.userData.ownGeo = side === 1;
+            this.floor[w].add(m);
+            if (this.floorKids) this.floorKids.push(m);
           }
         }
-        // curbs along the path edges
-        const len = end - start;
-        const curbGeo = new THREE.BoxGeometry(0.35, w === 0 ? 0.35 : 0.08, len);
-        for (const side of [-1, 1]) {
-          const m = new THREE.Mesh(curbGeo, F.curb);
-          m.position.set(side * (PATH_W / 2 - 0.1), w === 0 ? 0.08 : 0.04, -(start + end) / 2);
-          m.userData.ownGeo = side === 1;
-          this.floor[w].add(m);
-        }
+        fl.curbFrom = to;
       }
     }
 
@@ -1083,6 +1198,7 @@
       g.add(top, slab);
       g.position.set(lane * LW + Math.sign(lane) * extra / 2, 0, -(a + b) / 2);
       parent.add(g);
+      if (this.floorKids) this.floorKids.push(g);
       return g;
     }
 
@@ -1169,7 +1285,7 @@
       } else {
         g.position.set(lane * LW, 0, -row.d);
       }
-      this.levelGroup.add(g);
+      this.target.add(g);
       if (this.boss) {
         g.visible = false;
         g.userData.homeY = 0;
@@ -1196,7 +1312,7 @@
       inner.userData.ownGeo = inner.userData.ownMat = true;
       g.add(ring, inner);
       g.position.set(0, 1.4, -row.d);
-      this.levelGroup.add(g);
+      this.target.add(g);
       this.rifts.push({ g, ring, inner, d: row.d });
     }
 
@@ -1233,7 +1349,7 @@
         banner.position.set(0, 4.4, 0); banner.userData.ownGeo = banner.userData.ownMat = true;
         g.add(banner);
       }
-      this.levelGroup.add(g);
+      this.target.add(g);
     }
 
     // ---------------- per-frame update ----------------
@@ -1434,12 +1550,14 @@
         this.floor[0].visible = mix < 0.5;
         this.floor[1].visible = mix >= 0.5;
       }
-      for (const s of this.shardMeshes || []) s.userData.mat.opacity = s.userData.world === 0 ? op[0] : op[1];
-      for (const c of this.chestMeshes || []) c.userData.vis = c.userData.world === 0 ? op[0] : op[1];
+      for (const s of this.shardMeshes || []) if (s) s.userData.mat.opacity = s.userData.world === 0 ? op[0] : op[1];
+      for (const c of this.chestMeshes || []) if (c) c.userData.vis = c.userData.world === 0 ? op[0] : op[1];
+      for (const g of this.gemMeshes || []) if (g) g.userData.vis = g.userData.world === 0 ? op[0] : op[1];
     }
 
     _updateLevelObjects(dt, t, sim) {
       const P = sim.player, speed = sim.speed;
+      this._streamLevel(P);
       if (this.boss) this._updateBoss(dt, t, sim);
       for (const mv of this.movers) {
         const tA = (mv.row.d - P.d) / speed;
@@ -1479,10 +1597,19 @@
       const c0 = sim.coinCursor;
       for (let i = Math.max(0, c0 - 5); i < this.coinMeshes.length; i++) {
         const m = this.coinMeshes[i];
+        if (!m) continue;
         if (m.position.z < -P.d - 150) break;
         m.rotation.y += dt * 3;
       }
+      for (const g of this.gemMeshes) {
+        if (!g || !g.visible) continue;
+        g.rotation.y += dt * 2.5;
+        g.position.y = 1.25 + Math.sin(t * 2.5 + g.position.z) * 0.15;
+        g.userData.ring.rotation.x = t * 2;
+        g.userData.glow.material.opacity = (0.2 + Math.sin(t * 5) * 0.08) * g.userData.vis;
+      }
       for (const s of this.shardMeshes) {
+        if (!s) continue;
         s.rotation.y += dt * 2;
         s.children[1].rotation.x += dt * 3;
         s.position.y = 1.2 + Math.sin(t * 3) * 0.15;
@@ -1566,12 +1693,12 @@
       for (const f of this.spinners || []) f(t);
       // time pads glow and scroll
       for (const p of this.padMeshes || []) {
-        if (!p.visible) continue;
+        if (!p || !p.visible) continue;
         p.material.map.offset.y = p.userData.kind === 'fast' ? -t * 1.5 : t * 0.4;
         p.material.opacity = 0.75 + 0.25 * Math.sin(t * 8);
       }
       for (const c of this.chestMeshes || []) {
-        if (c.userData.opened) continue;
+        if (!c || c.userData.opened) continue;
         c.userData.beam.material.opacity = (0.25 + 0.15 * Math.sin(t * 4)) * c.userData.vis;
         c.rotation.y = Math.sin(t * 1.5) * 0.25;
         c.userData.sparkle.rotation.y += dt * 2;

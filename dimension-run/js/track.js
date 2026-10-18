@@ -29,6 +29,7 @@
 
   // ---------- speed profile ----------
   function speedAt(cfg, d) {
+    if (cfg.endless) return Math.min(cfg.speed[1], cfg.speed[0] + Math.max(0, d) / cfg.ramp);
     if (cfg.finale && d >= cfg.length - cfg.finale.length) {
       const f = (d - (cfg.length - cfg.finale.length)) / cfg.finale.length;
       return U.lerp(cfg.speed[1], cfg.finale.speed, U.clamp(f * 3, 0, 1));
@@ -300,6 +301,7 @@
           d = step.at;
         } else {
           let dt = step.dt != null ? step.dt * (cfg.spacing || 1) : r.range(cfg.rowTime[0], cfg.rowTime[1]) * (prev && prev.d > finaleD ? 0.92 : 1);
+          if (cfg.endless && step.dt == null) dt *= Math.max(0.72, 1 - (prev ? prev.d : 0) / 14000);   // the rhythm tightens slowly
           if (k === 0) dt += extraDt;
           if (prev && isVertical(prev.cells) && isVertical(step.cells)) dt = Math.max(dt, C.VERTICAL_ROW_TIME);
           dt = Math.max(dt, C.MIN_ROW_TIME);
@@ -381,7 +383,8 @@
     const shards = placeShards(r, cfg, rows, plan);
     const chests = placeChests(r, cfg, rows, plan, shards);
     const pads = placePads(r, cfg, rows, chests);
-    return { cfg, rows, plan, coins, shards, chests, pads, length: cfg.length, finaleD: cfg.finale ? finaleD : null, speedAt: d => speedAt(cfg, d) };
+    const gems = placeGems(r, cfg, rows, plan, shards.concat(chests));
+    return { cfg, rows, plan, coins, shards, chests, pads, gems, length: cfg.length, finaleD: cfg.finale ? finaleD : null, speedAt: d => speedAt(cfg, d) };
   }
 
   function gapsBetweenRows(rows) {
@@ -438,6 +441,19 @@
       const otherWorld = r.chance(0.25);   // mostly in your world, so you can really get them
       const lane = otherWorld ? r.int(-1, 1) : r.pick(except(p.lane + 1)) - 1;
       out.push({ d: (g.a + g.b) / 2, lane, world: otherWorld ? 1 - p.world : p.world });
+    }
+    return out.sort((a, b) => a.d - b.d);
+  }
+
+  // Diamonds: rare, a little off the safe path (another lane, sometimes the other world).
+  function placeGems(r, cfg, rows, plan, taken) {
+    const out = [];
+    const near = d => taken.some(x => Math.abs(x.d - d) < 10);
+    const gaps = r.shuffle(gapsBetweenRows(rows).filter(g => g.i > 2 && !near((g.a + g.b) / 2)));
+    for (const g of gaps.slice(0, cfg.gems || 0)) {
+      const p = plan[g.i];
+      const otherWorld = r.chance(0.3);
+      out.push({ d: (g.a + g.b) / 2, lane: otherWorld ? r.int(-1, 1) : r.pick(except(p.lane + 1)) - 1, world: otherWorld ? 1 - p.world : p.world, y: 1.2 });
     }
     return out.sort((a, b) => a.d - b.d);
   }

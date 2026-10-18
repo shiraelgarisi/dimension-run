@@ -45,6 +45,7 @@
       coinRate: 0.75,
       shards: 1,
       chests: 2,
+      gems: 1,
       instability: 0,
       intro: [
         { at: 105, pattern: 'tutLane', hint: 'Dodge with ← → (or A / D)' },
@@ -70,6 +71,7 @@
       coinRate: 0.7,
       shards: 2,
       chests: 3,
+      gems: 1,
       instability: 0,
       intro: [
         { at: 120, pattern: 'introGap', hint: 'A gap in the Light World: jump it or switch' },
@@ -93,6 +95,7 @@
       coinRate: 0.65,
       shards: 2,
       chests: 3,
+      gems: 2,
       timePads: 0.55,   // share of free stretches that get a time pad (speed up / slow down time)
       instability: 0.1,
       intro: [
@@ -117,6 +120,7 @@
       coinRate: 0.6,
       shards: 3,
       chests: 4,
+      gems: 2,
       instability: 0.6,
       intro: [
         { at: 165, pattern: 'introMover', hint: 'Moving obstacles shift lanes: watch them' },
@@ -146,6 +150,7 @@
       coinRate: 0.55,
       shards: 3,
       chests: 4,
+      gems: 2,
       instability: 0.7,
       intro: [
         { at: 175, pattern: 'introCollapse', hint: 'The path is collapsing: watch the cracks' },
@@ -168,6 +173,7 @@
       coinRate: 0.6,
       shards: 3,
       chests: 4,
+      gems: 2,
       instability: 0.8,
       intro: [
         { at: 180, pattern: 'introMover', hint: 'Candy blocks slide around: keep your eyes open' },
@@ -190,6 +196,7 @@
       coinRate: 0.6,
       shards: 3,
       chests: 4,
+      gems: 3,
       instability: 0.9,
       intro: [
         { at: 185, pattern: 'zigzag2', hint: 'Up in the clouds: switch fast, switch often!' },
@@ -220,6 +227,7 @@
       coinRate: 0.6,
       shards: 5,
       chests: 4,
+      gems: 3,
       instability: 1,
       intro: [
         { at: 185, pattern: 'tutWallLight', hint: 'The Monster King throws obstacles: watch where they land!' },
@@ -251,12 +259,13 @@
     ],
     pet: [
       { id: 'none', name: 'No pet', icon: '▫️', free: true },
-      { id: 'panda', name: 'Panda', icon: '🐼' },
-      { id: 'corgi', name: 'Corgi', icon: '🐶' },
-      { id: 'chick', name: 'Chick', icon: '🐥' },
-      { id: 'cat', name: 'Cat', icon: '🐱' },
-      { id: 'koala', name: 'Koala', icon: '🐨' },
-      { id: 'raccoon', name: 'Raccoon', icon: '🦝' },
+      // pets are rare: bought with diamonds (found in treasure chests and scattered on the path)
+      { id: 'chick', name: 'Chick', icon: '🐥', price: 100 },
+      { id: 'cat', name: 'Cat', icon: '🐱', price: 100 },
+      { id: 'corgi', name: 'Corgi', icon: '🐶', price: 200 },
+      { id: 'koala', name: 'Koala', icon: '🐨', price: 200 },
+      { id: 'panda', name: 'Panda', icon: '🐼', price: 350 },
+      { id: 'raccoon', name: 'Raccoon', icon: '🦝', price: 350 },
     ],
     back: [
       { id: 'backpack', name: 'Backpack', icon: '🎒', free: true },
@@ -274,7 +283,38 @@
     shield: { name: 'Shield', icon: '🛡️', price: 150, desc: 'Survive one crash' },
     magnet: { name: 'Magnet', icon: '🧲', price: 100, desc: 'Pull in coins from every lane' },
   };
-  DR.REVIVE_COST = [50, 100, 200];   // continuing after a crash; doubles every time in the same run
+  DR.REVIVE_COST = [50, 100, 200];
+
+  // what a treasure chest can hold (weights). Clothing only while there is some left to find.
+  DR.CHEST = {
+    item: 40, coins: 25, gems: 35,
+    coinAmounts: [[50, 50], [100, 35], [200, 15]],     // [amount, weight]
+    gemAmounts: [[10, 60], [15, 30], [50, 10]],
+  };
+  DR.GEM_VALUE = 5;   // a diamond lying on the path
+
+  // Level 0: the Infinite World. It never ends: speed keeps rising until you crash.
+  DR.ENDLESS = {
+    id: 0,
+    endless: true,
+    name: 'Infinite World',
+    subtitle: 'How far can you go?',
+    difficulty: 'Endless',
+    seed: 1009,
+    length: 40000,
+    speed: [19, 46],
+    ramp: 230,             // +1 m/s every 230 m (capped at speed[1])
+    cooldown: 0.6,
+    rowTime: [1.15, 1.75],
+    spacing: 1.3,
+    patterns: { lane2: 1, jump: 1, slide: 1, wall: 2, split: 2.5, gap: 1.5, trap: 1.5, beamTrap: 1, combo: 1.5, zigzag: 2, timing: 1.5, slalom: 1.5, mover: 2, enemy: 2, rift: 1, collapse: 1, darkGap: 1 },
+    movingEnemies: true,
+    coinRate: 0.6,
+    shards: 60,
+    chests: 60,
+    gems: 90,
+    instability: 0,
+  };   // continuing after a crash; doubles every time in the same run
   DR.GHOST_TIME = { revive: 2.5, shield: 1.4 };
 
   // Time pads (Time Pressure): they change how fast time flows for everything,

@@ -33,6 +33,9 @@
       this.shardTaken = new Uint8Array(this.track.shards.length);
       this.riftDone = new Set();
       this.chestTaken = new Uint8Array((this.track.chests || []).length);
+      this.gemTaken = new Uint8Array((this.track.gems || []).length);
+      this.gemCursor = 0;
+      this.gemsGot = 0;
       this.padCursor = 0;
       this.padTaken = new Uint8Array((this.track.pads || []).length);
       this.warp = null;            // active time pad: { kind, t }
@@ -230,6 +233,17 @@
           this.chestTaken[i] = 1;
           this.scoring.chest();
           this.events.push({ type: 'chest', index: i });
+        }
+      }
+      const gems = this.track.gems || [];
+      while (this.gemCursor < gems.length && gems[this.gemCursor].d < P.d - 1.5) this.gemCursor++;
+      for (let i = this.gemCursor; i < gems.length && gems[i].d < P.d + 1.5; i++) {
+        const g = gems[i];
+        if (this.gemTaken[i] || g.world !== this.dim.world) continue;
+        if (Math.abs(g.d - P.d) < 1.1 && Math.abs(g.lane * C.LANE_W - P.lat) < 1.2) {
+          this.gemTaken[i] = 1;
+          this.gemsGot += DR.GEM_VALUE;
+          this.events.push({ type: 'gem', index: i, value: DR.GEM_VALUE });
         }
       }
       // time pads trigger when you run over them (not while jumping over)
